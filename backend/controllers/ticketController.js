@@ -26,9 +26,18 @@ exports.bookTicket = async (req, res) => {
 // Get my tickets
 exports.getMyTickets = async (req, res) => {
   try {
-    const tickets = await Ticket.find({ student: req.user.id }).populate("bus");
+    const tickets = await Ticket.find({ student: req.user.id }).populate({
+      path: "bus",
+      populate: [
+        { path: "route", select: "name stops" }, // populate route
+        { path: "driver", select: "name phone" }, // populate driver
+        { path: "conductor", select: "name phone" }, // optional
+      ],
+    });
+
     res.json(tickets);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to fetch tickets" });
   }
 };

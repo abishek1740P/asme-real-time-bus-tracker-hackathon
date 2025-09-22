@@ -12,8 +12,8 @@ export default function StudentTicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedTicket, setSelectedTicket] = useState(null); // Details modal
-  const [selectedQRTicket, setSelectedQRTicket] = useState(null); // QR modal
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [selectedQRTicket, setSelectedQRTicket] = useState(null);
 
   useEffect(() => {
     if (!authLoading && user) fetchTickets();
@@ -31,6 +31,18 @@ export default function StudentTicketsPage() {
     }
   };
 
+  // ESC key handler for closing modals
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        setSelectedTicket(null);
+        setSelectedQRTicket(null);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
   if (authLoading || loading) return <LoadingSpinner />;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!tickets.length)
@@ -42,7 +54,6 @@ export default function StudentTicketsPage() {
         My Booked Tickets
       </h1>
 
-      {/* Tickets Table */}
       <div className="overflow-x-auto bg-[#3E2F2C] rounded-lg shadow">
         <table className="min-w-full divide-y divide-gray-700 text-white">
           <thead className="bg-[#5D4037]">
@@ -58,7 +69,7 @@ export default function StudentTicketsPage() {
           <tbody className="divide-y divide-gray-700">
             {tickets.map((ticket) => (
               <tr key={ticket._id} className="hover:bg-[#4a362b]">
-                <td className="px-4 py-2">{ticket.bus?.name}</td>
+                <td className="px-4 py-2">{ticket.bus?.name || "N/A"}</td>
                 <td className="px-4 py-2 text-center">{ticket.seats}</td>
                 <td className="px-4 py-2 text-center">{ticket.fare}</td>
                 <td
@@ -104,7 +115,8 @@ export default function StudentTicketsPage() {
             </button>
 
             <h2 className="text-2xl font-bold mb-2">
-              {selectedTicket.bus?.name} ({selectedTicket.bus?.number})
+              {selectedTicket.bus?.name || "N/A"} (
+              {selectedTicket.bus?.number || "N/A"})
             </h2>
             <p className="text-sm text-[#CDBFB4] mb-4">
               Route: {selectedTicket.bus?.route?.name || "N/A"}
@@ -122,15 +134,15 @@ export default function StudentTicketsPage() {
               </p>
               <p>
                 <span className="font-semibold">Start Point:</span>{" "}
-                {selectedTicket.startPoint}
+                {selectedTicket.startPoint || "N/A"}
               </p>
               <p>
                 <span className="font-semibold">Stop Point:</span>{" "}
-                {selectedTicket.stopPoint}
+                {selectedTicket.stopPoint || "N/A"}
               </p>
               <p>
                 <span className="font-semibold">Fare:</span> ₹
-                {selectedTicket.fare}
+                {selectedTicket.fare || "N/A"}
               </p>
               <p>
                 <span className="font-semibold">Status:</span>{" "}
@@ -146,17 +158,21 @@ export default function StudentTicketsPage() {
               </p>
               <p>
                 <span className="font-semibold">Booked At:</span>{" "}
-                {format(
-                  new Date(selectedTicket.createdAt),
-                  "dd MMM yyyy, HH:mm"
-                )}
+                {selectedTicket.createdAt
+                  ? format(
+                      new Date(selectedTicket.createdAt),
+                      "dd MMM yyyy, HH:mm"
+                    )
+                  : "N/A"}
               </p>
               <p>
                 <span className="font-semibold">Last Updated:</span>{" "}
-                {format(
-                  new Date(selectedTicket.updatedAt),
-                  "dd MMM yyyy, HH:mm"
-                )}
+                {selectedTicket.updatedAt
+                  ? format(
+                      new Date(selectedTicket.updatedAt),
+                      "dd MMM yyyy, HH:mm"
+                    )
+                  : "N/A"}
               </p>
             </div>
           </div>
@@ -175,13 +191,13 @@ export default function StudentTicketsPage() {
             </button>
 
             <h2 className="text-xl font-bold mb-6 text-center">
-              {selectedQRTicket.bus?.name} QR Code
+              {selectedQRTicket.bus?.name || "N/A"} QR Code
             </h2>
 
             <div className="p-4 bg-white rounded-lg">
               <QRCodeCanvas
                 value={selectedQRTicket._id}
-                size={300} // larger for scanning
+                size={300}
                 bgColor="#FFFFFF"
                 fgColor="#000000"
               />
