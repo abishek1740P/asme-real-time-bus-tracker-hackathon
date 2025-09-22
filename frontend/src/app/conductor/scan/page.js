@@ -11,6 +11,7 @@ export default function ScanTicketPage() {
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
   const [scanActive, setScanActive] = useState(false);
+  const [showDetails, setShowDetails] = useState(false); // Show ticket details
 
   const scannerRef = useRef(null);
 
@@ -37,8 +38,8 @@ export default function ScanTicketPage() {
         { deviceId: { exact: selectedDeviceId } },
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 }, // scan only a 250x250px box in center
-          disableFlip: false, // allows flipping for mirrored webcam
+          qrbox: { width: 250, height: 250 },
+          disableFlip: false,
         },
         async (decodedText) => {
           console.log("QR decoded:", decodedText);
@@ -75,9 +76,14 @@ export default function ScanTicketPage() {
     setError("");
 
     try {
+      // Stop scanner immediately after scanning
+      await stopScan();
+
       const res = await api.post(`/tickets/scan/${data}`);
       setScanResult(res.data.ticket);
-      await stopScan();
+
+      // Show ticket details
+      setShowDetails(true);
     } catch (err) {
       console.error("API error:", err);
       setScanResult(null);
@@ -163,7 +169,6 @@ export default function ScanTicketPage() {
         {/* Camera preview */}
         <div className="relative w-full h-80 rounded-xl overflow-hidden bg-black border-4 border-[#F3E5D7]/20 shadow-inner">
           <div id="reader" className="w-full h-full"></div>
-          {/* Scanning indicator */}
           {scanActive && (
             <div className="absolute top-0 left-0 w-full h-1 bg-red-500 animate-scan-line"></div>
           )}
@@ -175,7 +180,7 @@ export default function ScanTicketPage() {
           </p>
         )}
 
-        {scanResult && (
+        {scanResult && showDetails && (
           <div className="mt-4 p-4 bg-green-600 rounded-2xl w-full text-white text-center shadow-lg animate-fadeIn">
             ✅ Ticket Valid! <br />
             <span className="font-semibold">Student:</span>{" "}
@@ -191,7 +196,16 @@ export default function ScanTicketPage() {
             <span className="font-semibold">Status:</span> {scanResult.status}{" "}
             <br />
             <span className="font-semibold">Used:</span>{" "}
-            {scanResult.used ? "Yes" : "No"}
+            {scanResult.used ? "Yes" : "No"} <br />
+            <button
+              onClick={() => {
+                setShowDetails(false);
+                setScanResult(null);
+              }}
+              className="mt-2 px-4 py-2 bg-yellow-500 rounded-xl hover:bg-yellow-400 transition-colors"
+            >
+              Close
+            </button>
           </div>
         )}
 
