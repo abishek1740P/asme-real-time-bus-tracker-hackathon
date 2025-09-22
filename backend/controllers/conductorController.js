@@ -1,4 +1,5 @@
 const Conductor = require("../models/Conductor");
+const Ticket = require("../models/Ticket");
 const Bus = require("../models/Bus");
 const bcrypt = require("bcryptjs");
 
@@ -107,6 +108,49 @@ exports.getAssignedBus = async (req, res) => {
       driver: bus.driver,
     });
   } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Get scan history for the logged-in conductor
+exports.getHistory = async (req, res) => {
+  try {
+    const conductorId = req.user.id;
+
+    // Find the bus assigned to this conductor
+    const bus = await Bus.findOne({ conductor: conductorId }).populate({
+      path: "route",
+      select: "name stops",
+    });
+    if (!bus) return res.status(404).json({ error: "No bus assigned" });
+
+    // Find tickets that belong to this bus and have been scanned (used: true)
+    const tickets = await Ticket.find({ bus: bus._id, used: true })
+      .populate("student", "name email") // fetch student info
+      .populate({
+        path: "bus",
+        populate: {
+          path: "route",
+          select: "name stops",
+        },
+      })
+      .sort({ updatedAt: -1 });
+
+    // Map tickets to frontend-friendly format
+    const history = tickets.map((t) => ({
+      _id: t._id,
+      studentName: t.student?.name || "Unknown Student",
+      ticketId: t._id,
+      scannedAt: t.updatedAt,
+      routeName: t.bus?.route?.name || "N/A",
+      startPoint: t.startPoint || "N/A",
+      stopPoint: t.stopPoint || "N/A",
+      fare: t.fare || "N/A",
+    }));
+
+    res.json(history);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
