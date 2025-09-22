@@ -34,7 +34,7 @@ exports.getBusById = async (req, res) => {
     const bus = await Bus.findById(req.params.id)
       .populate({
         path: "route",
-        select: "name stops", // includes stop coordinates
+        select: "name stops fares", // ✅ include fares here
       })
       .populate({
         path: "driver",
@@ -42,7 +42,7 @@ exports.getBusById = async (req, res) => {
       })
       .populate({
         path: "conductor",
-        select: "name phone", // ✅ added conductor
+        select: "name phone",
       });
 
     if (!bus) {

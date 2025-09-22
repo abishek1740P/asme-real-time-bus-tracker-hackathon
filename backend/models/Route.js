@@ -11,6 +11,13 @@ const routeSchema = new mongoose.Schema({
       },
     },
   ],
+  fares: [
+    {
+      from: String, // start stop
+      to: String, // end stop
+      fare: Number,
+    },
+  ],
 });
 
 module.exports = mongoose.model("Route", routeSchema);

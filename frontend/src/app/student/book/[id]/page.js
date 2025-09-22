@@ -13,7 +13,6 @@ export default function BookBusPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Form state
   const [seats, setSeats] = useState(1);
   const [startPoint, setStartPoint] = useState("");
   const [stopPoint, setStopPoint] = useState("");
@@ -34,8 +33,26 @@ export default function BookBusPage() {
     fetchBus();
   }, [id]);
 
+  // Auto-populate fare when start or stop changes
+  useEffect(() => {
+    if (!bus?.route?.fares) return;
+
+    // Trim and normalize strings to avoid mismatch
+    const matchedFare = bus.route.fares.find(
+      (f) =>
+        f.from.trim().toUpperCase() === startPoint.trim().toUpperCase() &&
+        f.to.trim().toUpperCase() === stopPoint.trim().toUpperCase()
+    );
+
+    if (matchedFare) setFare(Number(matchedFare.fare));
+    else setFare(0); // default to 0 if no fare found
+  }, [startPoint, stopPoint, bus?.route?.fares]);
+
   async function handleBooking() {
-    if (!fare || !startPoint || !stopPoint) return;
+    if (!fare || !startPoint || !stopPoint) {
+      alert("Please select start and stop points and ensure fare is valid.");
+      return;
+    }
 
     await payWithRazorpay(
       fare,
@@ -47,15 +64,20 @@ export default function BookBusPage() {
         },
       },
       async () => {
-        await api.post("/tickets/book", {
-          busId: id,
-          seats,
-          startPoint,
-          stopPoint,
-          fare,
-        });
-        alert("✅ Booking successful!");
-        router.push("/student/book");
+        try {
+          await api.post("/tickets/book", {
+            busId: id,
+            seats,
+            startPoint,
+            stopPoint,
+            fare,
+          });
+          alert("✅ Booking successful!");
+          router.push("/student/book");
+        } catch (err) {
+          console.error(err);
+          alert("❌ Booking failed. Try again.");
+        }
       }
     );
   }
@@ -66,7 +88,6 @@ export default function BookBusPage() {
 
   return (
     <div className="min-h-screen p-4 md:p-12 bg-[#1f1b16] text-[#F3E5D7] space-y-6">
-      {/* Bus Info Card */}
       <div className="bg-[#2D2421] p-6 rounded-2xl shadow-lg max-w-3xl mx-auto">
         <h2 className="text-2xl font-bold mb-2">
           {bus.name} ({bus.number})
@@ -82,7 +103,6 @@ export default function BookBusPage() {
         </p>
       </div>
 
-      {/* Booking Form Card */}
       <div className="bg-[#2D2421] p-6 rounded-2xl shadow-lg max-w-3xl mx-auto">
         <h3 className="text-xl font-bold mb-4 text-center">
           🎟️ Book Your Ticket
@@ -144,11 +164,10 @@ export default function BookBusPage() {
             <label className="block font-semibold mb-1">Fare (₹)</label>
             <input
               type="number"
-              min="1"
+              min="0"
               value={fare}
-              onChange={(e) => setFare(e.target.value)}
+              readOnly
               className="w-32 p-2 rounded-lg bg-[#3a312a] text-[#F3E5D7] border border-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
-              required
             />
           </div>
 

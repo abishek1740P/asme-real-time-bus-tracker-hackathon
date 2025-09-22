@@ -15,9 +15,11 @@ export default function RoutesPage() {
   const [form, setForm] = useState({
     name: "",
     stops: [{ name: "", lat: "", lng: "" }],
+    fares: [], // new fares array
   });
   const [editingId, setEditingId] = useState(null);
 
+  // Auth & access check
   useEffect(() => {
     if (!loading) {
       if (!user) {
@@ -36,6 +38,7 @@ export default function RoutesPage() {
     }
   }, [user]);
 
+  // Fetch all routes
   const fetchRoutes = async () => {
     try {
       const res = await api.get("/routes");
@@ -45,6 +48,28 @@ export default function RoutesPage() {
     }
   };
 
+  // Generate all fare combinations whenever stops change
+  // Generate all fare combinations whenever stops change
+  useEffect(() => {
+    if (form.stops.length > 1) {
+      const fares = [];
+      for (let i = 0; i < form.stops.length; i++) {
+        for (let j = 0; j < form.stops.length; j++) {
+          if (i === j) continue;
+          fares.push({
+            from: form.stops[i].name || `Stop ${i + 1}`,
+            to: form.stops[j].name || `Stop ${j + 1}`,
+            fare: 0,
+          });
+        }
+      }
+      setForm((prev) => ({ ...prev, fares }));
+    } else {
+      setForm((prev) => ({ ...prev, fares: [] }));
+    }
+  }, [form.stops.map((s) => s.name).join(",")]);
+
+  // Submit route
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = {
@@ -56,6 +81,7 @@ export default function RoutesPage() {
           lng: parseFloat(s.lng),
         },
       })),
+      fares: form.fares,
     };
 
     try {
@@ -67,7 +93,7 @@ export default function RoutesPage() {
         toast.success("Route added");
       }
 
-      setForm({ name: "", stops: [{ name: "", lat: "", lng: "" }] });
+      setForm({ name: "", stops: [{ name: "", lat: "", lng: "" }], fares: [] });
       setEditingId(null);
       fetchRoutes();
     } catch (err) {
@@ -75,6 +101,7 @@ export default function RoutesPage() {
     }
   };
 
+  // Edit route
   const handleEdit = (route) => {
     setForm({
       name: route.name,
@@ -83,6 +110,7 @@ export default function RoutesPage() {
         lat: stop.coordinates?.lat || "",
         lng: stop.coordinates?.lng || "",
       })),
+      fares: route.fares || [],
     });
     setEditingId(route._id);
   };
@@ -105,8 +133,17 @@ export default function RoutesPage() {
     setForm({ ...form, stops: updatedStops });
   };
 
+  const handleFareChange = (index, value) => {
+    const updatedFares = [...form.fares];
+    updatedFares[index].fare = parseFloat(value);
+    setForm({ ...form, fares: updatedFares });
+  };
+
   const addStop = () => {
-    setForm({ ...form, stops: [...form.stops, { name: "", lat: "", lng: "" }] });
+    setForm({
+      ...form,
+      stops: [...form.stops, { name: "", lat: "", lng: "" }],
+    });
   };
 
   const removeStop = (index) => {
@@ -125,7 +162,6 @@ export default function RoutesPage() {
   return (
     <div className="min-h-screen bg-[#1f1b16] text-[#F3E5D7]">
       <AdminSidebar />
-
       <main className="p-4 md:p-8 md:ml-[16rem]">
         <h2 className="text-2xl font-bold mb-6">🗺️ Routes</h2>
 
@@ -143,7 +179,7 @@ export default function RoutesPage() {
 
           <h4 className="text-lg font-semibold">🛑 Stops</h4>
           {form.stops.map((stop, index) => (
-            <div key={index} className="flex flex-wrap gap-2 mb-2">
+            <div key={index} className="flex flex-wrap gap-2 mb-2 items-center">
               <input
                 className="flex-1 p-2 rounded bg-[#40352F] text-white"
                 placeholder="Stop Name"
@@ -159,9 +195,7 @@ export default function RoutesPage() {
                 className="w-28 p-2 rounded bg-[#40352F] text-white"
                 placeholder="Lat"
                 value={stop.lat}
-                onChange={(e) =>
-                  handleStopChange(index, "lat", e.target.value)
-                }
+                onChange={(e) => handleStopChange(index, "lat", e.target.value)}
                 required
               />
               <input
@@ -170,9 +204,7 @@ export default function RoutesPage() {
                 className="w-28 p-2 rounded bg-[#40352F] text-white"
                 placeholder="Lng"
                 value={stop.lng}
-                onChange={(e) =>
-                  handleStopChange(index, "lng", e.target.value)
-                }
+                onChange={(e) => handleStopChange(index, "lng", e.target.value)}
                 required
               />
               <button
@@ -192,6 +224,28 @@ export default function RoutesPage() {
             ➕ Add Stop
           </button>
 
+          {/* Fares Section */}
+          {form.fares.length > 0 && (
+            <div className="mt-4">
+              <h4 className="text-lg font-semibold">💰 Fares</h4>
+              {form.fares.map((f, idx) => (
+                <div key={idx} className="flex gap-2 items-center mb-2">
+                  <span>
+                    {f.from} → {f.to}:
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-24 p-2 rounded bg-[#40352F] text-white"
+                    value={f.fare}
+                    onChange={(e) => handleFareChange(idx, e.target.value)}
+                    required
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex gap-2 mt-4">
             <button className="bg-[#A9745F] hover:bg-[#8C5F4E] px-4 py-2 rounded text-white">
               {editingId ? "Update Route" : "Add Route"}
@@ -199,10 +253,13 @@ export default function RoutesPage() {
             {editingId && (
               <button
                 type="button"
-                onClick={() => {
-                  setForm({ name: "", stops: [{ name: "", lat: "", lng: "" }] });
-                  setEditingId(null);
-                }}
+                onClick={() =>
+                  setForm({
+                    name: "",
+                    stops: [{ name: "", lat: "", lng: "" }],
+                    fares: [],
+                  }) || setEditingId(null)
+                }
                 className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded text-white"
               >
                 Cancel
@@ -223,6 +280,16 @@ export default function RoutesPage() {
                   </p>
                 ))}
               </div>
+              {route.fares && route.fares.length > 0 && (
+                <div className="mt-2 text-sm">
+                  <p className="font-semibold">💰 Fares:</p>
+                  {route.fares.map((f, idx) => (
+                    <p key={idx}>
+                      {f.from} → {f.to}: ₹{f.fare}
+                    </p>
+                  ))}
+                </div>
+              )}
               <div className="flex space-x-3 mt-3">
                 <button
                   onClick={() => handleEdit(route)}
