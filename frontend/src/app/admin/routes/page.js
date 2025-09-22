@@ -51,7 +51,7 @@ export default function RoutesPage() {
   // Generate all fare combinations whenever stops change
   // Generate all fare combinations whenever stops change
   useEffect(() => {
-    if (form.stops.length > 1) {
+    if (form.stops.length > 1 && !editingId) {
       const fares = [];
       for (let i = 0; i < form.stops.length; i++) {
         for (let j = 0; j < form.stops.length; j++) {
@@ -64,10 +64,8 @@ export default function RoutesPage() {
         }
       }
       setForm((prev) => ({ ...prev, fares }));
-    } else {
-      setForm((prev) => ({ ...prev, fares: [] }));
     }
-  }, [form.stops.map((s) => s.name).join(",")]);
+  }, [form.stops.length]); // only run when stops count changes
 
   // Submit route
   const handleSubmit = async (e) => {
