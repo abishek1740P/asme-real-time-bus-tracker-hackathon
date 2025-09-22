@@ -37,25 +37,27 @@ export default function BookBusPage() {
   async function handleBooking() {
     if (!fare || !startPoint || !stopPoint) return;
 
-    // Call modular Razorpay utility
-    await payWithRazorpay(fare, {
-      prefill: {
-        name: "Passenger",
-        email: "test@example.com",
-        contact: "9999999999",
+    await payWithRazorpay(
+      fare,
+      {
+        prefill: {
+          name: "Passenger",
+          email: "test@example.com",
+          contact: "9999999999",
+        },
       },
-    }, async () => {
-      // Save booking after payment
-      await api.post("/tickets/book", {
-        busId: id,
-        seats,
-        startPoint,
-        stopPoint,
-        fare,
-      });
-      alert("✅ Booking successful!");
-      router.push("/student/book");
-    });
+      async () => {
+        await api.post("/tickets/book", {
+          busId: id,
+          seats,
+          startPoint,
+          stopPoint,
+          fare,
+        });
+        alert("✅ Booking successful!");
+        router.push("/student/book");
+      }
+    );
   }
 
   if (loading) return <LoadingSpinner />;
@@ -63,17 +65,28 @@ export default function BookBusPage() {
   if (!bus) return <p className="text-gray-400">Bus not found.</p>;
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Bus Info */}
-      <div className="bg-[#3E2F2C] p-4 rounded-lg text-white shadow-md">
-        <h2 className="text-xl font-bold">{bus.name} ({bus.number})</h2>
-        <p className="text-sm text-[#CDBFB4]">Route: {bus.route?.name || "N/A"}</p>
-        <p className="text-sm text-[#CDBFB4]">Driver: {bus.driver?.name || "N/A"}</p>
-        <p className="text-sm text-[#CDBFB4]">Phone: {bus.driver?.phone || "N/A"}</p>
+    <div className="min-h-screen p-4 md:p-12 bg-[#1f1b16] text-[#F3E5D7] space-y-6">
+      {/* Bus Info Card */}
+      <div className="bg-[#2D2421] p-6 rounded-2xl shadow-lg max-w-3xl mx-auto">
+        <h2 className="text-2xl font-bold mb-2">
+          {bus.name} ({bus.number})
+        </h2>
+        <p className="text-sm text-[#CDB7AE]">
+          Route: {bus.route?.name || "N/A"}
+        </p>
+        <p className="text-sm text-[#CDB7AE]">
+          Driver: {bus.driver?.name || "N/A"}
+        </p>
+        <p className="text-sm text-[#CDB7AE]">
+          Phone: {bus.driver?.phone || "N/A"}
+        </p>
       </div>
 
-      {/* Booking Form */}
-      <div className="bg-[#5D4037] p-4 rounded-lg shadow text-white">
+      {/* Booking Form Card */}
+      <div className="bg-[#2D2421] p-6 rounded-2xl shadow-lg max-w-3xl mx-auto">
+        <h3 className="text-xl font-bold mb-4 text-center">
+          🎟️ Book Your Ticket
+        </h3>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -82,64 +95,66 @@ export default function BookBusPage() {
           className="space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium mb-1">Seats</label>
+            <label className="block font-semibold mb-1">Seats</label>
             <input
               type="number"
               min="1"
               max={bus.totalSeats || 50}
               value={seats}
               onChange={(e) => setSeats(parseInt(e.target.value))}
-              className="w-24 p-2 rounded bg-[#3E2F2C] text-white border border-gray-500"
+              className="w-24 p-2 rounded-lg bg-[#3a312a] text-[#F3E5D7] border border-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
             />
           </div>
 
-          {/* Start Point Dropdown */}
           <div>
-            <label className="block text-sm font-medium mb-1">Start Point</label>
+            <label className="block font-semibold mb-1">Start Point</label>
             <select
               value={startPoint}
               onChange={(e) => setStartPoint(e.target.value)}
-              className="w-full p-2 rounded bg-[#3E2F2C] text-white border border-gray-500"
+              className="w-full p-2 rounded-lg bg-[#3a312a] text-[#F3E5D7] border border-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
               required
             >
               <option value="">Select Start</option>
               {bus.route?.stops?.map((stop, idx) => (
-                <option key={idx} value={stop.name}>{stop.name}</option>
+                <option key={idx} value={stop.name}>
+                  {stop.name}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* Stop Point Dropdown */}
           <div>
-            <label className="block text-sm font-medium mb-1">Stop Point</label>
+            <label className="block font-semibold mb-1">Stop Point</label>
             <select
               value={stopPoint}
               onChange={(e) => setStopPoint(e.target.value)}
-              className="w-full p-2 rounded bg-[#3E2F2C] text-white border border-gray-500"
+              className="w-full p-2 rounded-lg bg-[#3a312a] text-[#F3E5D7] border border-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
               required
             >
               <option value="">Select Stop</option>
               {bus.route?.stops?.map((stop, idx) => (
-                <option key={idx} value={stop.name}>{stop.name}</option>
+                <option key={idx} value={stop.name}>
+                  {stop.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Fare (₹)</label>
+            <label className="block font-semibold mb-1">Fare (₹)</label>
             <input
               type="number"
               min="1"
               value={fare}
               onChange={(e) => setFare(e.target.value)}
-              className="w-32 p-2 rounded bg-[#3E2F2C] text-white border border-gray-500"
+              className="w-32 p-2 rounded-lg bg-[#3a312a] text-[#F3E5D7] border border-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
               required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 rounded bg-green-600 hover:bg-green-700 text-white font-semibold"
+            className="w-full py-2 rounded-2xl bg-[#CDB7AE] text-[#1f1b16] font-semibold hover:bg-[#e0c6ae] transition"
           >
             Pay & Book
           </button>
