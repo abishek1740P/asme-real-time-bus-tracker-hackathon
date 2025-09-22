@@ -12,8 +12,8 @@ export default function StudentTicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedTicket, setSelectedTicket] = useState(null); // For modal
-  const [showQR, setShowQR] = useState(false); // QR toggle state
+  const [selectedTicket, setSelectedTicket] = useState(null); // Details modal
+  const [selectedQRTicket, setSelectedQRTicket] = useState(null); // QR modal
 
   useEffect(() => {
     if (!authLoading && user) fetchTickets();
@@ -42,16 +42,17 @@ export default function StudentTicketsPage() {
         My Booked Tickets
       </h1>
 
-      {/* Table */}
+      {/* Tickets Table */}
       <div className="overflow-x-auto bg-[#3E2F2C] rounded-lg shadow">
         <table className="min-w-full divide-y divide-gray-700 text-white">
           <thead className="bg-[#5D4037]">
             <tr>
               <th className="px-4 py-2 text-left">Bus Name</th>
-              <th className="px-4 py-2">Seats</th>
-              <th className="px-4 py-2">Fare (₹)</th>
-              <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Action</th>
+              <th className="px-4 py-2 text-center">Seats</th>
+              <th className="px-4 py-2 text-center">Fare (₹)</th>
+              <th className="px-4 py-2 text-center">Status</th>
+              <th className="px-4 py-2 text-center">Details</th>
+              <th className="px-4 py-2 text-center">QR Code</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
@@ -71,13 +72,18 @@ export default function StudentTicketsPage() {
                 </td>
                 <td className="px-4 py-2 text-center">
                   <button
-                    onClick={() => {
-                      setSelectedTicket(ticket);
-                      setShowQR(false); // reset QR when opening
-                    }}
+                    onClick={() => setSelectedTicket(ticket)}
                     className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded"
                   >
-                    View
+                    View Details
+                  </button>
+                </td>
+                <td className="px-4 py-2 text-center">
+                  <button
+                    onClick={() => setSelectedQRTicket(ticket)}
+                    className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
+                  >
+                    View QR
                   </button>
                 </td>
               </tr>
@@ -86,7 +92,7 @@ export default function StudentTicketsPage() {
         </table>
       </div>
 
-      {/* Modal */}
+      {/* Details Modal */}
       {selectedTicket && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-[#3E2F2C] rounded-lg shadow-lg w-full max-w-lg p-6 relative">
@@ -153,33 +159,39 @@ export default function StudentTicketsPage() {
                 )}
               </p>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* QR Code toggle */}
-            <div className="mt-4 flex flex-col items-center">
-              <button
-                onClick={() => setShowQR((prev) => !prev)}
-                className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded mb-2"
-              >
-                {showQR ? "Hide QR Code" : "Show QR Code"}
-              </button>
+      {/* QR Code Modal */}
+      {selectedQRTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-[#3E2F2C] rounded-lg shadow-lg w-full max-w-sm p-8 relative flex flex-col items-center">
+            <button
+              onClick={() => setSelectedQRTicket(null)}
+              className="absolute top-3 right-3 text-white text-xl font-bold"
+            >
+              &times;
+            </button>
 
-              {showQR && (
-                <div className="flex flex-col items-center">
-                  <QRCodeCanvas
-                    value={selectedTicket._id}
-                    size={250}
-                    bgColor="#FFFFFF" // white
-                    fgColor="#000000" // black
-                  />
+            <h2 className="text-xl font-bold mb-6 text-center">
+              {selectedQRTicket.bus?.name} QR Code
+            </h2>
 
-                  {selectedTicket.used && (
-                    <p className="text-red-500 mt-2 font-semibold">
-                      Ticket already used
-                    </p>
-                  )}
-                </div>
-              )}
+            <div className="p-4 bg-white rounded-lg">
+              <QRCodeCanvas
+                value={selectedQRTicket._id}
+                size={300} // larger for scanning
+                bgColor="#FFFFFF"
+                fgColor="#000000"
+              />
             </div>
+
+            {selectedQRTicket.used && (
+              <p className="text-red-500 mt-4 font-semibold">
+                Ticket already used
+              </p>
+            )}
           </div>
         </div>
       )}
