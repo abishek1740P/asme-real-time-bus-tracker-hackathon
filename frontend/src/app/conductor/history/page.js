@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
-import { FaEye } from "react-icons/fa";
+import { FaEye, FaSearch } from "react-icons/fa";
 
 export default function ConductorHistoryPage() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -23,6 +25,21 @@ export default function ConductorHistoryPage() {
     };
     fetchHistory();
   }, []);
+
+  const filteredHistory = history.filter((item) => {
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch =
+      (item.studentName?.toLowerCase().includes(query) ||
+        item.routeName?.toLowerCase().includes(query)) ??
+      false;
+
+    const matchesDate = selectedDate
+      ? new Date(item.scannedAt).toISOString().slice(0, 10) === selectedDate
+      : true;
+
+    return matchesSearch && matchesDate;
+  });
 
   if (loading) {
     return (
@@ -44,9 +61,32 @@ export default function ConductorHistoryPage() {
 
   return (
     <div className="min-h-screen p-4 md:p-12 bg-[#1f1b16] text-[#F3E5D7]">
-      <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">
+      <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">
         📜 Scan History
       </h2>
+
+      {/* Search & Date Filter */}
+      <div className="max-w-3xl mx-auto mb-8 flex flex-col md:flex-row gap-4">
+        {/* Search Bar */}
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Search by passenger name or route..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full p-3 pl-10 rounded-xl bg-[#2D2421] text-[#F3E5D7] placeholder-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
+          />
+          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#CDB7AE]" />
+        </div>
+
+        {/* Date Picker */}
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="p-3 rounded-xl bg-[#2D2421] text-[#F3E5D7] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
+        />
+      </div>
 
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto max-w-6xl mx-auto">
@@ -62,7 +102,7 @@ export default function ConductorHistoryPage() {
             </tr>
           </thead>
           <tbody>
-            {history.map((item) => (
+            {filteredHistory.map((item) => (
               <tr
                 key={item._id}
                 className="bg-[#3a312a] hover:bg-[#4a3b32] transition-colors"
@@ -88,13 +128,23 @@ export default function ConductorHistoryPage() {
                 </td>
               </tr>
             ))}
+            {!filteredHistory.length && (
+              <tr>
+                <td
+                  colSpan="6"
+                  className="text-center p-4 text-[#CDB7AE] italic"
+                >
+                  No matching results
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
-        {history.map((item) => (
+        {filteredHistory.map((item) => (
           <div
             key={item._id}
             className="bg-[#2D2421] p-4 rounded-2xl shadow-lg flex flex-col gap-2"
@@ -118,6 +168,12 @@ export default function ConductorHistoryPage() {
             </button>
           </div>
         ))}
+
+        {!filteredHistory.length && (
+          <p className="text-center text-[#CDB7AE] italic">
+            No matching results
+          </p>
+        )}
       </div>
 
       {/* Modal */}

@@ -13,7 +13,7 @@ export default function ConductorSidebar() {
 
   const navItems = [
     { label: "Dashboard", href: "/conductor" },
-    { label: "scan", href: "/conductor/scan" },
+    { label: "Scan", href: "/conductor/scan" },
     { label: "History", href: "/conductor/history" },
   ];
 
