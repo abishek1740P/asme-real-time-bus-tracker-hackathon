@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { format } from "date-fns";
 import { QRCodeCanvas } from "qrcode.react";
+import DownloadTicket from "@/components/DownloadTicket";
 
 export default function StudentTicketsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -201,6 +202,9 @@ export default function StudentTicketsPage() {
                   : "N/A"}
               </p>
             </div>
+
+            {/* Download Ticket Button */}
+            <DownloadTicket ticket={selectedTicket} />
           </div>
         </div>
       )}
