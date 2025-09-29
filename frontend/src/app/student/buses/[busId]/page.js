@@ -7,6 +7,8 @@ import api from "@/lib/api";
 import dynamic from "next/dynamic";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import io from "socket.io-client";
+import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 
 // No SSR for map
 const MapWithNoSSR = dynamic(() => import("@/components/MapView"), {
@@ -141,7 +143,12 @@ export default function BusLivePage() {
 
     socket.on("checkpoint-reached", (data) => {
       if (data?.busId === busId) {
-        alert(data.message); // Replace with toast if needed
+        toast.custom(() => (
+          <CustomToast
+            type="info"
+            message={`🛑 Bus has reached checkpoint: ${data.stopName}`}
+          />
+        ));
       }
     });
 

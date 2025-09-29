@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 import api from "@/lib/api";
 
 export default function DriverHomePage() {
@@ -15,10 +16,16 @@ export default function DriverHomePage() {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        toast.error("Please login to continue");
+        toast.custom(() => (
+          <CustomToast type="error" message="Please login to continue" />
+        ));
+        // toast.error("Please login to continue");
         router.push("/login");
       } else if (user.role !== "driver") {
-        toast.error("Access denied: Drivers only");
+        toast.custom(() => (
+          <CustomToast type="error" message="Access denied: Drivers only" />
+        ));
+        // toast.error("Access denied: Drivers only");
         router.push(`/${user.role}`);
       } else {
         fetchBusDetails();
@@ -31,7 +38,10 @@ export default function DriverHomePage() {
       const res = await api.get("/drivers/me/assigned-bus");
       setBus(res.data);
     } catch (err) {
-      toast.error("Failed to fetch bus info");
+      toast.custom(() => (
+        <CustomToast type="error" message="Failed to fetch bus info" />
+      ));
+      // toast.error("Failed to fetch bus info");
     }
   };
 

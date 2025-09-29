@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 import { FaEye, FaSearch } from "react-icons/fa";
 
 export default function ConductorHistoryPage() {
@@ -18,7 +19,10 @@ export default function ConductorHistoryPage() {
         const res = await api.get("/conductors/me/history");
         setHistory(res.data);
       } catch (err) {
-        toast.error("Failed to fetch history");
+        toast.custom(() => (
+          <CustomToast type="error" message="Failed to fetch history" />
+        ));
+        // toast.error("Failed to fetch history");
       } finally {
         setLoading(false);
       }

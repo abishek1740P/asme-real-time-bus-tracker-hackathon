@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { getFcmToken } from "@/lib/firebase";
+import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 
 export default function StudentBusesPage() {
   const [buses, setBuses] = useState([]);
@@ -38,11 +40,17 @@ export default function StudentBusesPage() {
           updated.add(busId);
           return updated;
         });
-        alert("✅ You will now receive notifications for this bus.");
+        toast.custom(() => (
+          <CustomToast type="success" message="You will now receive notifications for this bus." />
+        ));
+        // alert("✅ You will now receive notifications for this bus.");
       }
     } catch (err) {
       console.error(err);
-      alert("⚠️ Failed to update subscription.");
+      toast.custom(() => (
+        <CustomToast type="error" message="Failed to update subscription." />
+      ));
+      // alert("⚠️ Failed to update subscription.");
     }
   }
 

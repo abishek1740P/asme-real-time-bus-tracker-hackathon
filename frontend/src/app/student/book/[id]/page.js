@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { payWithRazorpay } from "@/lib/razorpay";
+import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 
 export default function BookBusPage() {
   const { id } = useParams();
@@ -18,6 +20,7 @@ export default function BookBusPage() {
   const [stopPoint, setStopPoint] = useState("");
   const [fare, setFare] = useState("");
 
+  // Fetch bus details
   useEffect(() => {
     async function fetchBus() {
       try {
@@ -33,11 +36,10 @@ export default function BookBusPage() {
     fetchBus();
   }, [id]);
 
-  // Auto-populate fare when start or stop changes
+  // Auto-calculate fare
   useEffect(() => {
     if (!bus?.route?.fares) return;
 
-    // Trim and normalize strings to avoid mismatch
     const matchedFare = bus.route.fares.find(
       (f) =>
         f.from.trim().toUpperCase() === startPoint.trim().toUpperCase() &&
@@ -45,12 +47,18 @@ export default function BookBusPage() {
     );
 
     if (matchedFare) setFare(Number(matchedFare.fare));
-    else setFare(0); // default to 0 if no fare found
+    else setFare(0);
   }, [startPoint, stopPoint, bus?.route?.fares]);
 
+  // Handle booking & payment
   async function handleBooking() {
     if (!fare || !startPoint || !stopPoint) {
-      alert("Please select start and stop points and ensure fare is valid.");
+      toast.custom(() => (
+        <CustomToast
+          type="error"
+          message="Please select start and stop points and ensure fare is valid."
+        />
+      ));
       return;
     }
 
@@ -72,11 +80,15 @@ export default function BookBusPage() {
             stopPoint,
             fare,
           });
-          alert("✅ Booking successful!");
+          toast.custom(() => (
+            <CustomToast type="success" message="Booking successful!" />
+          ));
           router.push("/student");
         } catch (err) {
           console.error(err);
-          alert("❌ Booking failed. Try again.");
+          toast.custom(() => (
+            <CustomToast type="error" message="Booking failed. Try again." />
+          ));
         }
       }
     );

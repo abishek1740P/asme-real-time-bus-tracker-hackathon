@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 
 export default function ConductorDashboard() {
   const [bus, setBus] = useState(null);
@@ -14,7 +15,10 @@ export default function ConductorDashboard() {
         const res = await api.get("/conductors/me/assigned-bus");
         setBus(res.data);
       } catch (err) {
-        toast.error("Failed to fetch assigned bus");
+        toast.custom(() => (
+          <CustomToast type="error" message="Failed to fetch assigned bus" />
+        ));
+        // toast.error("Failed to fetch assigned bus");
       } finally {
         setFetching(false);
       }

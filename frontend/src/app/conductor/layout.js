@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 
 export default function ConductorLayout({ children }) {
   const { user, loading } = useAuth();
@@ -13,10 +14,17 @@ export default function ConductorLayout({ children }) {
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        toast.error("Please login to continue");
+        toast.custom(() => (
+          <CustomToast type="error" message="Please login to continue" />
+        ));
+        // toast.error("Please login to continue");
         router.push("/login");
       } else if (user.role !== "conductor") {
-        toast.error("Access denied: Conductors only");
+        toast.custom(() => (
+          <CustomToast type="error" message="Access denied: Conductors only" />
+        ));
+        //
+        // toast.error("Access denied: Conductors only");
         router.push(`/${user.role}`);
       }
     }

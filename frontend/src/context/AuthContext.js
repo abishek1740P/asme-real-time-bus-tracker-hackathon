@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@/lib/api";
 import { connectSocket, disconnectSocket } from "@/lib/socket";
-import toast from "react-hot-toast";
+// import toast from "react-hot-toast";
 import { messaging, getToken, deleteToken } from "@/lib/firebase-messaging";
 import { initMessaging } from "@/lib/firebase-messaging";
 
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
       router.push(role === "admin" ? "/admin/dashboard" : `/${role}`);
     } catch (err) {
       const msg = err.response?.data?.message || "Login failed";
-      toast.error(msg);
+     
       throw new Error(msg);
     }
   };
@@ -47,11 +47,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("token", token);
       setUser({ role, name, _id });
 
-      toast.success("Registration successful 🎉");
+    
       router.push("/student");
     } catch (err) {
       const msg = err.response?.data?.message || "Registration failed";
-      toast.error(msg);
+     
       throw new Error(msg); // <-- this throws the error you're seeing in console
     }
   };

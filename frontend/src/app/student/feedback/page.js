@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 
 export default function FeedbackPage() {
   const [formData, setFormData] = useState({
@@ -30,7 +32,10 @@ export default function FeedbackPage() {
       !formData.email ||
       !formData.description
     ) {
-      alert("⚠️ Please fill all fields");
+      toast.custom(() => (
+        <CustomToast type="error" message="Please fill all fields" />
+      ));
+      // alert("⚠️ Please fill all fields");
       return;
     }
 
@@ -53,7 +58,10 @@ export default function FeedbackPage() {
       setFormData({ name: "", phone: "", email: "", description: "" });
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to submit feedback. Please try again.");
+      toast.custom(() => (
+        <CustomToast type="error" message="Failed to submit feedback. Please try again." />
+      ));
+      // alert("❌ Failed to submit feedback. Please try again.");
     } finally {
       setLoading(false);
     }

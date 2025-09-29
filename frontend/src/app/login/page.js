@@ -1,10 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 
 export default function LoginPage() {
   const { login, user } = useAuth();
@@ -14,9 +16,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // 👇 Track if the user just logged in
+  const justLoggedIn = useRef(false);
+
   useEffect(() => {
-    if (user) {
-      toast.success("Already logged in!");
+    // Only show "Already logged in!" on page load / refresh
+    if (user && !justLoggedIn.current) {
+      toast.custom(() => (
+        <CustomToast type="info" message="Already logged in!" />
+      ));
+
       const redirectPath =
         user.role === "admin"
           ? "/admin/dashboard"
@@ -24,18 +33,25 @@ export default function LoginPage() {
           ? "/driver"
           : user.role === "conductor"
           ? "/conductor"
-          : "/student"; // default student
+          : "/student";
+
       router.push(redirectPath);
     }
-  }, [user, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      justLoggedIn.current = true; // ✅ mark before login
       await login(email, password);
+      toast.custom(() => (
+        <CustomToast type="success" message="Login successful!" />
+      ));
     } catch (err) {
+      justLoggedIn.current = false; // reset if login fails
       const msg = err?.message || "Login failed";
-      toast.error(msg);
+      toast.custom(() => <CustomToast type="error" message={msg} />);
     }
   };
 
@@ -82,7 +98,7 @@ export default function LoginPage() {
         >
           Login
         </button>
-        {/* Register link */}
+
         <p className="mt-4 text-center text-sm text-[#CDB7AE]">
           Don’t have an account?{" "}
           <Link href="/register" className="text-[#F3E5D7] hover:underline">
