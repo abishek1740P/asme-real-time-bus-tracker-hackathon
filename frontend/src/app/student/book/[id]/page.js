@@ -73,7 +73,7 @@ export default function BookBusPage() {
             fare,
           });
           alert("✅ Booking successful!");
-          router.push("/student/book");
+          router.push("/student");
         } catch (err) {
           console.error(err);
           alert("❌ Booking failed. Try again.");
