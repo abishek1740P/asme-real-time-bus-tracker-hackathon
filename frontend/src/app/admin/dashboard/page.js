@@ -16,6 +16,7 @@ export default function AdminDashboardPage() {
     buses: 0,
     drivers: 0,
     routes: 0,
+    conductors: 0,
   });
   const [statsLoading, setStatsLoading] = useState(true);
 
@@ -95,7 +96,7 @@ export default function AdminDashboardPage() {
 
         {/* === Stats Cards === */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {["buses", "drivers", "routes"].map((key) => (
+          {["buses", "drivers", "routes", "conductors"].map((key) => (
             <div
               key={key}
               className="bg-[#2e2721] rounded-2xl p-6 shadow-md flex flex-col items-center justify-center"
@@ -116,6 +117,15 @@ export default function AdminDashboardPage() {
           >
             📥 Download Drivers
           </button>
+
+          {/* ✅ New Button for Conductors */}
+          <button
+            onClick={() => downloadPdf("conductors")}
+            className="bg-[#8E24AA] text-white px-5 py-2.5 rounded-2xl shadow-md transition hover:bg-[#6A1B9A] hover:scale-105 active:scale-95"
+          >
+            🎟️ Download Conductors
+          </button>
+
           <Link
             href="/admin/view-all-buses"
             className="bg-[#FF7043] text-white px-5 py-2.5 rounded-2xl shadow-md transition hover:bg-[#F4511E] hover:scale-105 active:scale-95"

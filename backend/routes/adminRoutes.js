@@ -8,6 +8,7 @@ const requireRole = require("../middleware/roleMiddleware");
 const {
   generateStudentsPdf,
   generateDriversPdf,
+  generateConductorsPdf
 } = require("../controllers/pdfController");
 
 const { getStats } = require("../controllers/adminController");
@@ -24,6 +25,13 @@ router.get(
   protect,
   requireRole("admin"),
   generateDriversPdf
+);
+
+router.get(
+  "/conductors/download",
+  protect,
+  requireRole("admin"),
+  generateConductorsPdf
 );
 
 // ✅ Dashboard stats
