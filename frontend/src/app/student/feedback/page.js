@@ -10,6 +10,7 @@ export default function FeedbackPage() {
     phone: "",
     email: "",
     description: "",
+    rating: 0, // 0 means no rating selected
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -23,6 +24,10 @@ export default function FeedbackPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleRatingClick = (rating) => {
+    setFormData((prev) => ({ ...prev, rating }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -30,12 +35,15 @@ export default function FeedbackPage() {
       !formData.name ||
       !formData.phone ||
       !formData.email ||
-      !formData.description
+      !formData.description ||
+      formData.rating === 0
     ) {
       toast.custom(() => (
-        <CustomToast type="error" message="Please fill all fields" />
+        <CustomToast
+          type="error"
+          message="Please fill all fields and select a rating"
+        />
       ));
-      // alert("⚠️ Please fill all fields");
       return;
     }
 
@@ -55,13 +63,21 @@ export default function FeedbackPage() {
       const data = await res.json();
       console.log("✅ Feedback saved:", data);
       setSubmitted(true);
-      setFormData({ name: "", phone: "", email: "", description: "" });
+      setFormData({
+        name: "",
+        phone: "",
+        email: "",
+        description: "",
+        rating: 0,
+      });
     } catch (err) {
       console.error(err);
       toast.custom(() => (
-        <CustomToast type="error" message="Failed to submit feedback. Please try again." />
+        <CustomToast
+          type="error"
+          message="Failed to submit feedback. Please try again."
+        />
       ));
-      // alert("❌ Failed to submit feedback. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -122,6 +138,34 @@ export default function FeedbackPage() {
             />
           </div>
 
+          {/* Rating */}
+          <div>
+            <label className="block mb-3 font-medium">
+              ⭐ How would you rate your experience? (1-10)
+            </label>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => handleRatingClick(star)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 transform hover:scale-110 ${
+                    formData.rating === star
+                      ? "bg-[#FFD700] text-[#3E2F2C] shadow-lg"
+                      : "bg-[#5D4037] text-white hover:bg-[#7B4B32]"
+                  }`}
+                >
+                  {star}
+                </button>
+              ))}
+            </div>
+            <p className="text-center text-sm text-gray-400 mt-2">
+              {formData.rating === 0
+                ? "Click a number to rate"
+                : `You rated: ${formData.rating}/10`}
+            </p>
+          </div>
+
           {/* Description */}
           <div>
             <label className="block mb-1 font-medium">
@@ -145,9 +189,9 @@ export default function FeedbackPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#5D4037] hover:bg-[#7B4B32] text-white py-2 rounded-lg shadow disabled:opacity-50"
+            className="w-full bg-[#5D4037] hover:bg-[#7B4B32] text-white py-2 rounded-lg shadow disabled:opacity-50 transition-colors duration-200 font-medium"
           >
-            {loading ? "Submitting..." : "Submit Feedback"}
+            {loading ? "Submitting..." : "✨ Submit Feedback"}
           </button>
         </form>
       )}
