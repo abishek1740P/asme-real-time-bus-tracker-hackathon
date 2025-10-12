@@ -39,7 +39,7 @@ export default function Navbar() {
   return (
     <nav className="bg-[#2e1f14] text-white border-b border-[#3d2a1f] px-6 py-4 shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link href="https://bus-tracker-sih-2025.vercel.app/" className="text-xl font-bold text-[#c9a97f]">
+        <Link href="https://asme-commutex-home-page.vercel.app/" className="text-xl font-bold text-[#c9a97f]">
           🚍 Urban Trail
         </Link>
 
