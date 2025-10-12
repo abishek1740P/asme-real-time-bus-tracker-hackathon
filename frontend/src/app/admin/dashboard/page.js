@@ -5,13 +5,19 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AdminSidebar from "@/components/AdminSidebar";
 import toast from "react-hot-toast";
-import api from "@/lib/api";
 import Link from "next/link";
 
 export default function AdminDashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  const [stats, setStats] = useState({
+    buses: 0,
+    drivers: 0,
+    routes: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     if (!loading) {
@@ -21,9 +27,28 @@ export default function AdminDashboardPage() {
       } else if (user.role !== "admin") {
         toast.error("Access denied: Admins only");
         router.push(`/${user.role}`);
+      } else {
+        fetchStats();
       }
     }
   }, [user, loading, router]);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/stats`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      if (!res.ok) throw new Error("Failed to load stats");
+      const data = await res.json();
+      setStats(data);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const downloadPdf = async (type) => {
     try {
@@ -32,12 +57,10 @@ export default function AdminDashboardPage() {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
-
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`${res.status}: ${text}`);
       }
-
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -70,13 +93,23 @@ export default function AdminDashboardPage() {
           Use the sidebar to manage buses, routes, and drivers.
         </p>
 
+        {/* === Stats Cards === */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          {["buses", "drivers", "routes"].map((key) => (
+            <div
+              key={key}
+              className="bg-[#2e2721] rounded-2xl p-6 shadow-md flex flex-col items-center justify-center"
+            >
+              <p className="text-4xl font-bold text-[#FFB74D]">
+                {statsLoading ? "…" : stats[key]}
+              </p>
+              <p className="mt-2 capitalize text-[#D7CCC8]">{key}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* === Actions === */}
         <div className="flex flex-wrap gap-4 mb-6">
-          {/* <button
-            onClick={() => downloadPdf("students")}
-            className="bg-[#4CAF50] text-white px-5 py-2.5 rounded-2xl shadow-md transition hover:bg-[#43A047] hover:scale-105 active:scale-95"
-          >
-            📥 Download Students
-          </button> */}
           <button
             onClick={() => downloadPdf("drivers")}
             className="bg-[#1E88E5] text-white px-5 py-2.5 rounded-2xl shadow-md transition hover:bg-[#1976D2] hover:scale-105 active:scale-95"

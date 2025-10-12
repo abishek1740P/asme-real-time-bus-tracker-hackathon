@@ -10,6 +10,7 @@ const {
   generateDriversPdf,
 } = require("../controllers/pdfController");
 
+const { getStats } = require("../controllers/adminController");
 
 router.get(
   "/students/download",
@@ -24,5 +25,8 @@ router.get(
   requireRole("admin"),
   generateDriversPdf
 );
+
+// ✅ Dashboard stats
+router.get("/stats", protect, requireRole("admin"), getStats);
 
 module.exports = router;
