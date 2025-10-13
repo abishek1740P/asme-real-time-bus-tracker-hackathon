@@ -17,9 +17,8 @@ router.post("/", auth, role("admin"), createConductor);
 router.put("/:id", auth, role("admin"), updateConductor);
 router.delete("/:id", auth, role("admin"), deleteConductor);
 
-router.get("/me/history", auth, getHistory);
-
-// ✅ Conductor-specific route to get assigned bus
+// ✅ Conductor-specific routes
+router.get("/me/history", auth, role("conductor"), getHistory);
 router.get("/me/assigned-bus", auth, role("conductor"), getAssignedBus);
 
 module.exports = router;

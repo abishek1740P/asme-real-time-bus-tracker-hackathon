@@ -85,8 +85,7 @@ exports.getAssignedBus = async (req, res) => {
   try {
     const conductorId = req.user.id;
 
-    // ✅ Populate the full route including stops
-    // ConductorController.js -> getAssignedBus
+    // ✅ CORRECTED: Find bus where conductor field matches conductorId
     const bus = await Bus.findOne({ conductor: conductorId })
       .populate({
         path: "route",
@@ -104,7 +103,7 @@ exports.getAssignedBus = async (req, res) => {
       name: bus.name,
       number: bus.number,
       route: bus.route,
-      checkpoints, // ✅ added
+      checkpoints,
       driver: bus.driver,
     });
   } catch (err) {

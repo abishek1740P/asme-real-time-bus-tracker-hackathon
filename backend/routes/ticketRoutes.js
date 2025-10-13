@@ -1,16 +1,17 @@
 const express = require("express");
 const router = express.Router();
+const auth = require("../middleware/authMiddleware");
+const role = require("../middleware/roleMiddleware");
 const {
   bookTicket,
   getMyTickets,
   scanTicket,
 } = require("../controllers/ticketController");
-const protect = require("../middleware/authMiddleware");
 
-router.post("/book", protect, bookTicket);
-router.get("/my", protect, getMyTickets);
+router.post("/book", auth, bookTicket);
+router.get("/my", auth, getMyTickets);
 
-// ✅ New scan route
-router.post("/scan/:ticketId", scanTicket);
+// ✅ FIXED: Add authentication and role protection for scan route
+router.post("/scan/:ticketId", auth, role(["conductor"]), scanTicket);
 
 module.exports = router;

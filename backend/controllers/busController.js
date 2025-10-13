@@ -1,5 +1,6 @@
 const Bus = require("../models/Bus");
 const SpeedAlert = require("../models/SpeedAlert");
+const Conductor = require("../models/Conductor");
 
 // Create a new bus (admin only)
 exports.createBus = async (req, res) => {
@@ -17,10 +18,10 @@ exports.getBuses = async (req, res) => {
     const buses = await Bus.find()
       .populate({
         path: "route",
-        select: "name stops", // include stops for search/map
+        select: "name stops",
       })
       .populate("driver", "name phone")
-      .populate("conductor", "name phone"); // ✅ added conductor
+      .populate("conductor", "name phone");
 
     res.json(buses);
   } catch (err) {
@@ -34,7 +35,7 @@ exports.getBusById = async (req, res) => {
     const bus = await Bus.findById(req.params.id)
       .populate({
         path: "route",
-        select: "name stops fares", // ✅ include fares here
+        select: "name stops fares",
       })
       .populate({
         path: "driver",
@@ -55,6 +56,61 @@ exports.getBusById = async (req, res) => {
   }
 };
 
+// Get conductor's assigned bus
+exports.getMyBus = async (req, res) => {
+  try {
+    const conductorId = req.user.id;
+
+    const bus = await Bus.findOne({ conductor: conductorId })
+      .populate("route", "name stops")
+      .populate("driver", "name phone");
+
+    if (!bus) {
+      return res
+        .status(404)
+        .json({ error: "No bus assigned to this conductor" });
+    }
+
+    res.json({ bus });
+  } catch (err) {
+    console.error("Get conductor bus error:", err);
+    res.status(500).json({ error: "Failed to fetch conductor bus" });
+  }
+};
+
+// ✅ KEEP ONLY THIS assignConductor function (remove the duplicate)
+exports.assignConductor = async (req, res) => {
+  try {
+    const { busId, conductorId } = req.body;
+
+    // Update bus with conductor
+    const bus = await Bus.findByIdAndUpdate(
+      busId,
+      { conductor: conductorId },
+      { new: true }
+    ).populate("conductor", "name phone");
+
+    if (!bus) {
+      return res.status(404).json({ error: "Bus not found" });
+    }
+
+    // Update conductor with bus
+    await Conductor.findByIdAndUpdate(
+      conductorId,
+      { bus: busId },
+      { new: true }
+    );
+
+    res.json({
+      message: "Conductor assigned successfully",
+      bus,
+    });
+  } catch (err) {
+    console.error("Assign conductor error:", err);
+    res.status(500).json({ error: "Failed to assign conductor" });
+  }
+};
+
 // Update a bus (admin only)
 exports.updateBus = async (req, res) => {
   try {
@@ -63,7 +119,7 @@ exports.updateBus = async (req, res) => {
     })
       .populate("route", "name")
       .populate("driver", "name phone")
-      .populate("conductor", "name phone"); // ✅ added conductor
+      .populate("conductor", "name phone");
 
     if (!updated) {
       return res.status(404).json({ error: "Bus not found" });
@@ -75,8 +131,7 @@ exports.updateBus = async (req, res) => {
   }
 };
 
-// Speed alerts (unchanged, optional populate conductor)
-// Speed alerts - fix the populate calls
+// Speed alerts
 exports.getSpeedAlertsByBusId = async (req, res) => {
   try {
     const { id } = req.params;
@@ -84,8 +139,7 @@ exports.getSpeedAlertsByBusId = async (req, res) => {
     const alerts = await SpeedAlert.find({ bus: id })
       .sort({ triggeredAt: -1 })
       .limit(100)
-      .populate("driver", "name phone") // ✅ This exists in SpeedAlert schema
-      // .populate("conductor", "name phone") // ❌ REMOVE THIS LINE - conductor doesn't exist in SpeedAlert
+      .populate("driver", "name phone")
       .populate("bus", "name number");
 
     res.json({ alerts });
