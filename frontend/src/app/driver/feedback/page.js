@@ -36,11 +36,11 @@ export default function DriverFeedbackPage() {
   const fetchDriverAndBusInfo = async () => {
     try {
       setLoadingInfo(true);
-      console.log("🔄 Fetching driver info:", user); // Debug log
+      
 
       // Fetch assigned bus info
       const busRes = await api.get("/drivers/me/assigned-bus");
-      console.log("🚌 Bus response:", busRes.data); // Debug log
+   
 
       if (busRes.data) {
         setBusInfo(busRes.data);
@@ -59,7 +59,7 @@ export default function DriverFeedbackPage() {
         });
       }
     } catch (err) {
-      console.error("Error fetching driver/bus info:", err);
+
       toast.custom(() => (
         <CustomToast type="error" message="Failed to load driver information" />
       ));
@@ -117,7 +117,7 @@ export default function DriverFeedbackPage() {
       }
 
       const data = await res.json();
-      console.log("✅ Driver feedback saved:", data);
+     
       setSubmitted(true);
 
       // Reset only the feedback fields, keep auto-filled info
@@ -134,7 +134,7 @@ export default function DriverFeedbackPage() {
         />
       ));
     } catch (err) {
-      console.error("Feedback submission error:", err);
+     
       toast.custom(() => (
         <CustomToast
           type="error"
