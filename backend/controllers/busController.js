@@ -76,6 +76,7 @@ exports.updateBus = async (req, res) => {
 };
 
 // Speed alerts (unchanged, optional populate conductor)
+// Speed alerts - fix the populate calls
 exports.getSpeedAlertsByBusId = async (req, res) => {
   try {
     const { id } = req.params;
@@ -83,8 +84,8 @@ exports.getSpeedAlertsByBusId = async (req, res) => {
     const alerts = await SpeedAlert.find({ bus: id })
       .sort({ triggeredAt: -1 })
       .limit(100)
-      .populate("driver", "name phone")
-      .populate("conductor", "name phone") // ✅ added conductor
+      .populate("driver", "name phone") // ✅ This exists in SpeedAlert schema
+      // .populate("conductor", "name phone") // ❌ REMOVE THIS LINE - conductor doesn't exist in SpeedAlert
       .populate("bus", "name number");
 
     res.json({ alerts });
