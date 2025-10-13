@@ -36,23 +36,38 @@ export default function BookBusPage() {
     fetchBus();
   }, [id]);
 
-  // Auto-calculate fare
+  // Auto-calculate fare - FIXED VERSION
   useEffect(() => {
-    if (!bus?.route?.fares) return;
+    if (!bus?.route?.fares || !startPoint || !stopPoint) {
+      setFare("");
+      return;
+    }
 
     const matchedFare = bus.route.fares.find(
       (f) =>
-        f.from.trim().toUpperCase() === startPoint.trim().toUpperCase() &&
-        f.to.trim().toUpperCase() === stopPoint.trim().toUpperCase()
+        f.from?.trim().toUpperCase() === startPoint.trim().toUpperCase() &&
+        f.to?.trim().toUpperCase() === stopPoint.trim().toUpperCase()
     );
 
-    if (matchedFare) setFare(Number(matchedFare.fare));
-    else setFare(0);
-  }, [startPoint, stopPoint, bus?.route?.fares]);
+    if (matchedFare && matchedFare.fare) {
+      const baseFare = Number(matchedFare.fare);
+      // Ensure we have valid numbers and handle edge cases
+      if (!isNaN(baseFare) && !isNaN(seats) && baseFare > 0 && seats > 0) {
+        const totalFare = baseFare * seats;
+        setFare(totalFare.toString()); // Convert to string to avoid NaN issues
+      } else {
+        setFare("");
+      }
+    } else {
+      setFare("");
+    }
+  }, [startPoint, stopPoint, bus?.route?.fares, seats]);
 
   // Handle booking & payment
   async function handleBooking() {
-    if (!fare || !startPoint || !stopPoint) {
+    const fareValue = Number(fare);
+
+    if (!fareValue || !startPoint || !stopPoint || isNaN(fareValue)) {
       toast.custom(() => (
         <CustomToast
           type="error"
@@ -63,7 +78,7 @@ export default function BookBusPage() {
     }
 
     await payWithRazorpay(
-      fare,
+      fareValue, // Use the numeric value for payment
       {
         prefill: {
           name: "Passenger",
@@ -78,7 +93,7 @@ export default function BookBusPage() {
             seats,
             startPoint,
             stopPoint,
-            fare,
+            fare: fareValue, // Use numeric value for API
           });
           toast.custom(() => (
             <CustomToast type="success" message="Booking successful!" />
@@ -133,7 +148,10 @@ export default function BookBusPage() {
               min="1"
               max={bus.totalSeats || 50}
               value={seats}
-              onChange={(e) => setSeats(parseInt(e.target.value))}
+              onChange={(e) => {
+                const value = parseInt(e.target.value) || 1;
+                setSeats(Math.max(1, Math.min(bus.totalSeats || 50, value)));
+              }}
               className="w-24 p-2 rounded-lg bg-[#3a312a] text-[#F3E5D7] border border-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
             />
           </div>
@@ -175,11 +193,10 @@ export default function BookBusPage() {
           <div>
             <label className="block font-semibold mb-1">Fare (₹)</label>
             <input
-              type="number"
-              min="0"
-              value={fare}
+              type="text" // Changed to text to avoid number validation issues
+              value={fare ? `₹${fare}` : "Select route to calculate fare"}
               readOnly
-              className="w-32 p-2 rounded-lg bg-[#3a312a] text-[#F3E5D7] border border-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
+              className="w-full p-2 rounded-lg bg-[#3a312a] text-[#F3E5D7] border border-[#CDB7AE] focus:outline-none focus:ring-2 focus:ring-[#CDB7AE]"
             />
           </div>
 
