@@ -1,11 +1,36 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import api from "@/lib/api"; // ✅ your existing axios instance
 
 export default function StudentHomePage() {
+  const [studentName, setStudentName] = useState("");
+
+  useEffect(() => {
+    const fetchStudentName = async () => {
+      try {
+        // ✅ Use your existing backend API call
+        const res = await api.get("/students/profile");
+
+        // If your backend returns driver info + bus info
+        // e.g., { _id, name, email, bus: {...} }
+        if (res.data && res.data.name) {
+          setStudentName(res.data.name);
+        }
+      } catch (err) {
+        console.error("Error fetching student name:", err);
+      }
+    };
+
+    fetchStudentName();
+  }, []);
+
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold">Welcome Passenger</h1>
+      <h1 className="text-2xl font-bold">
+        Welcome {studentName || "Passenger"}
+      </h1>
 
       <div className="mt-6 space-y-3">
         <Link

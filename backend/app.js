@@ -39,12 +39,14 @@ app.use("/api/auth", authRoutes);
 app.use("/api/buses", busRoutes);
 app.use("/api/routes", routeRoutes);
 app.use("/api/drivers", driverRoutes);
-app.use("/api/conductors", conductorRoutes); // ✅ added
+app.use("/api/conductors", conductorRoutes); 
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/student/feedback", feedbackRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/students", require("./routes/studentRoutes"));
+
 
 
 module.exports = app;
