@@ -86,6 +86,12 @@ export default function DriverHomePage() {
           >
             Go to GPS Tracking
           </Link>
+          <Link
+            href="/driver/feedback"
+            className="bg-[#2C3E50] hover:bg-[#34495E] text-white font-semibold px-5 py-3 rounded-lg shadow transition duration-200 text-center"
+          >
+            Driver Feedback
+          </Link>
         </div>
       </div>
     </div>

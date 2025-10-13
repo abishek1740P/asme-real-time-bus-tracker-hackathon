@@ -16,6 +16,16 @@ const feedbackSchema = new mongoose.Schema(
         message: "Rating must be a whole number between 1 and 10",
       },
     },
+    // New fields for driver feedback
+    driverId: { type: String }, // Optional for driver feedback
+    vehicleNumber: { type: String }, // Optional for driver feedback
+    route: { type: String }, // Optional for driver feedback
+    feedbackType: {
+      type: String,
+      enum: ["passenger", "driver"],
+      default: "passenger",
+      required: true,
+    },
   },
   { timestamps: true }
 );

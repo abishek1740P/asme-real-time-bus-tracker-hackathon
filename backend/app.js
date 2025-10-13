@@ -18,10 +18,9 @@ const driverRoutes = require("./routes/driverRoutes");
 const conductorRoutes = require("./routes/conductorRoutes"); // ✅ added
 const adminRoutes = require("./routes/adminRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
-const feedbackRoutes = require("./routes/feedbackRoutes");
+// const feedbackRoutes = require("./routes/feedbackRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
-
 
 const app = express();
 
@@ -39,14 +38,14 @@ app.use("/api/auth", authRoutes);
 app.use("/api/buses", busRoutes);
 app.use("/api/routes", routeRoutes);
 app.use("/api/drivers", driverRoutes);
-app.use("/api/conductors", conductorRoutes); 
+app.use("/api/conductors", conductorRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/student/feedback", feedbackRoutes);
+// Add this to your main router file
+app.use("/api/student/feedback", require("./routes/feedbackRoutes"));
+app.use("/api/driver/feedback", require("./routes/driverFeedback"));
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/students", require("./routes/studentRoutes"));
-
-
 
 module.exports = app;

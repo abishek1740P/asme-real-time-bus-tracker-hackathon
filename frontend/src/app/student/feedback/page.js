@@ -1,10 +1,214 @@
+// "use client";
+
+// import { useState } from "react";
+// import toast from "react-hot-toast";
+// import CustomToast from "@/components/CustomToast";
+
+// export default function FeedbackPage() {
+//   const [formData, setFormData] = useState({
+//     name: "",
+//     phone: "",
+//     email: "",
+//     description: "",
+//     rating: 0, // 0 means no rating selected
+//   });
+
+//   const [submitted, setSubmitted] = useState(false);
+//   const [loading, setLoading] = useState(false);
+
+//   const maxChars = 200;
+
+//   const handleChange = (e) => {
+//     const { name, value } = e.target;
+//     if (name === "description" && value.length > maxChars) return;
+//     setFormData((prev) => ({ ...prev, [name]: value }));
+//   };
+
+//   const handleRatingClick = (rating) => {
+//     setFormData((prev) => ({ ...prev, rating }));
+//   };
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+
+//     if (
+//       !formData.name ||
+//       !formData.phone ||
+//       !formData.email ||
+//       !formData.description ||
+//       formData.rating === 0
+//     ) {
+//       toast.custom(() => (
+//         <CustomToast
+//           type="error"
+//           message="Please fill all fields and select a rating"
+//         />
+//       ));
+//       return;
+//     }
+
+//     try {
+//       setLoading(true);
+//       const res = await fetch(
+//         `${process.env.NEXT_PUBLIC_API_URL}/student/feedback`,
+//         {
+//           method: "POST",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify(formData),
+//         }
+//       );
+
+//       if (!res.ok) throw new Error("Failed to submit feedback");
+
+//       const data = await res.json();
+//       console.log("✅ Feedback saved:", data);
+//       setSubmitted(true);
+//       setFormData({
+//         name: "",
+//         phone: "",
+//         email: "",
+//         description: "",
+//         rating: 0,
+//       });
+//     } catch (err) {
+//       console.error(err);
+//       toast.custom(() => (
+//         <CustomToast
+//           type="error"
+//           message="Failed to submit feedback. Please try again."
+//         />
+//       ));
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="p-4 max-w-lg mx-auto text-white">
+//       <h1 className="text-2xl font-bold mb-4">📝 Passenger Feedback</h1>
+
+//       {submitted ? (
+//         <div className="bg-green-700 text-white p-3 rounded-md shadow">
+//           Thank you for your feedback!
+//         </div>
+//       ) : (
+//         <form
+//           onSubmit={handleSubmit}
+//           className="space-y-4 bg-[#3E2F2C] p-4 rounded-lg shadow-md"
+//         >
+//           {/* Name */}
+//           <div>
+//             <label className="block mb-1 font-medium">Name</label>
+//             <input
+//               type="text"
+//               name="name"
+//               value={formData.name}
+//               onChange={handleChange}
+//               placeholder="Enter your name"
+//               className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
+//               required
+//             />
+//           </div>
+
+//           {/* Phone */}
+//           <div>
+//             <label className="block mb-1 font-medium">Phone Number</label>
+//             <input
+//               type="tel"
+//               name="phone"
+//               value={formData.phone}
+//               onChange={handleChange}
+//               placeholder="Enter your phone number"
+//               className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
+//               required
+//             />
+//           </div>
+
+//           {/* Email */}
+//           <div>
+//             <label className="block mb-1 font-medium">Email</label>
+//             <input
+//               type="email"
+//               name="email"
+//               value={formData.email}
+//               onChange={handleChange}
+//               placeholder="Enter your email"
+//               className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
+//               required
+//             />
+//           </div>
+
+//           {/* Rating */}
+//           <div>
+//             <label className="block mb-3 font-medium">
+//               ⭐ How would you rate your experience? (1-10)
+//             </label>
+//             <div className="flex flex-wrap gap-2 justify-center">
+//               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
+//                 <button
+//                   key={star}
+//                   type="button"
+//                   onClick={() => handleRatingClick(star)}
+//                   className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 transform hover:scale-110 ${
+//                     formData.rating === star
+//                       ? "bg-[#FFD700] text-[#3E2F2C] shadow-lg"
+//                       : "bg-[#5D4037] text-white hover:bg-[#7B4B32]"
+//                   }`}
+//                 >
+//                   {star}
+//                 </button>
+//               ))}
+//             </div>
+//             <p className="text-center text-sm text-gray-400 mt-2">
+//               {formData.rating === 0
+//                 ? "Click a number to rate"
+//                 : `You rated: ${formData.rating}/10`}
+//             </p>
+//           </div>
+
+//           {/* Description */}
+//           <div>
+//             <label className="block mb-1 font-medium">
+//               Feedback / Description
+//             </label>
+//             <textarea
+//               name="description"
+//               value={formData.description}
+//               onChange={handleChange}
+//               placeholder="Write your feedback..."
+//               className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
+//               rows={5}
+//               required
+//             />
+//             <p className="text-sm text-gray-400 mt-1">
+//               {formData.description.length}/{maxChars} characters
+//             </p>
+//           </div>
+
+//           {/* Submit */}
+//           <button
+//             type="submit"
+//             disabled={loading}
+//             className="w-full bg-[#5D4037] hover:bg-[#7B4B32] text-white py-2 rounded-lg shadow disabled:opacity-50 transition-colors duration-200 font-medium"
+//           >
+//             {loading ? "Submitting..." : "✨ Submit Feedback"}
+//           </button>
+//         </form>
+//       )}
+//     </div>
+//   );
+// }
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import CustomToast from "@/components/CustomToast";
+import api from "@/lib/api";
 
 export default function FeedbackPage() {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -17,6 +221,18 @@ export default function FeedbackPage() {
   const [loading, setLoading] = useState(false);
 
   const maxChars = 200;
+
+  // Auto-fill user information when component mounts
+  useEffect(() => {
+    if (user && user.role === "student") {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.name || "",
+        email: user.email || "",
+        // Phone is not auto-filled since it's not in the database
+      }));
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,24 +274,37 @@ export default function FeedbackPage() {
         }
       );
 
-      if (!res.ok) throw new Error("Failed to submit feedback");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to submit feedback");
+      }
 
       const data = await res.json();
       console.log("✅ Feedback saved:", data);
       setSubmitted(true);
-      setFormData({
-        name: "",
-        phone: "",
-        email: "",
+
+      // Reset only the feedback fields, keep user info
+      setFormData((prev) => ({
+        ...prev,
+        phone: "", // Reset phone since user needs to enter it each time
         description: "",
         rating: 0,
-      });
+      }));
+
+      toast.custom(() => (
+        <CustomToast
+          type="success"
+          message="Feedback submitted successfully!"
+        />
+      ));
     } catch (err) {
       console.error(err);
       toast.custom(() => (
         <CustomToast
           type="error"
-          message="Failed to submit feedback. Please try again."
+          message={
+            err.message || "Failed to submit feedback. Please try again."
+          }
         />
       ));
     } finally {
@@ -89,30 +318,39 @@ export default function FeedbackPage() {
 
       {submitted ? (
         <div className="bg-green-700 text-white p-3 rounded-md shadow">
-          ✅ Thank you for your feedback!
+          Thank you for your feedback!
         </div>
       ) : (
         <form
           onSubmit={handleSubmit}
           className="space-y-4 bg-[#3E2F2C] p-4 rounded-lg shadow-md"
         >
-          {/* Name */}
+          {/* Auto-filled Information Notice */}
+          <div className="bg-[#5D4037] p-3 rounded-md border border-[#7B4B32]">
+            <p className="text-sm text-[#FFD700] font-medium">
+              ℹ️ Some information has been automatically filled. Please provide
+              your phone number, rating, and feedback.
+            </p>
+          </div>
+
+          {/* Name - Read-only */}
           <div>
             <label className="block mb-1 font-medium">Name</label>
             <input
               type="text"
               name="name"
               value={formData.name}
-              onChange={handleChange}
-              placeholder="Enter your name"
-              className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
-              required
+              readOnly
+              className="w-full p-2 rounded-md shadow-sm bg-[#4A352F] text-gray-300 border border-[#3E2F2C] cursor-not-allowed"
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Auto-filled from your profile
+            </p>
           </div>
 
-          {/* Phone */}
+          {/* Phone - Enterable by user */}
           <div>
-            <label className="block mb-1 font-medium">Phone Number</label>
+            <label className="block mb-1 font-medium">Phone Number *</label>
             <input
               type="tel"
               name="phone"
@@ -122,26 +360,30 @@ export default function FeedbackPage() {
               className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
               required
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Please enter your phone number
+            </p>
           </div>
 
-          {/* Email */}
+          {/* Email - Read-only */}
           <div>
             <label className="block mb-1 font-medium">Email</label>
             <input
               type="email"
               name="email"
               value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
-              required
+              readOnly
+              className="w-full p-2 rounded-md shadow-sm bg-[#4A352F] text-gray-300 border border-[#3E2F2C] cursor-not-allowed"
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Auto-filled from your profile
+            </p>
           </div>
 
-          {/* Rating */}
+          {/* Rating - User needs to select this */}
           <div>
             <label className="block mb-3 font-medium">
-              ⭐ How would you rate your experience? (1-10)
+              ⭐ How would you rate your experience? (1-10) *
             </label>
             <div className="flex flex-wrap gap-2 justify-center">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
@@ -166,16 +408,16 @@ export default function FeedbackPage() {
             </p>
           </div>
 
-          {/* Description */}
+          {/* Description - User needs to fill this */}
           <div>
             <label className="block mb-1 font-medium">
-              Feedback / Description
+              Feedback / Comments *
             </label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Write your feedback..."
+              placeholder="Write your feedback about the bus service, driver, route, etc."
               className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
               rows={5}
               required
@@ -194,6 +436,25 @@ export default function FeedbackPage() {
             {loading ? "Submitting..." : "✨ Submit Feedback"}
           </button>
         </form>
+      )}
+
+      {/* User Information Summary */}
+      {!submitted && (
+        <div className="mt-6 bg-[#5D4037] p-4 rounded-lg border border-[#3E2F2C]">
+          <h3 className="font-medium mb-2 text-[#FFD700]">Your Information</h3>
+          <div className="text-sm text-gray-300 space-y-1">
+            <p>
+              👤 <strong>Name:</strong> {formData.name || "Loading..."}
+            </p>
+            <p>
+              📧 <strong>Email:</strong> {formData.email || "Loading..."}
+            </p>
+            <p className="text-xs text-gray-400 mt-2">
+              Name and Email are auto-filled. Please enter your phone number
+              above.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
