@@ -83,7 +83,8 @@ export default function StudentTicketsPage() {
               <th className="px-4 py-3 text-left font-semibold">Bus Name</th>
               <th className="px-4 py-3 text-center font-semibold">Seats</th>
               <th className="px-4 py-3 text-center font-semibold">Fare (₹)</th>
-              <th className="px-4 py-3 text-center font-semibold">Status</th>
+              {/* <th className="px-4 py-3 text-center font-semibold">Status</th> */}
+              <th className="px-4 py-3 text-center font-semibold">Ticket Used Or Not</th>
               <th className="px-4 py-3 text-center font-semibold">Details</th>
               <th className="px-4 py-3 text-center font-semibold">QR Code</th>
             </tr>
@@ -99,7 +100,7 @@ export default function StudentTicketsPage() {
                 <td className="px-4 py-3 text-center font-semibold">
                   ₹{ticket.fare}
                 </td>
-                <td
+                {/* <td
                   className={`px-4 py-3 text-center font-semibold ${
                     ticket.status === "booked"
                       ? "text-green-400"
@@ -107,6 +108,15 @@ export default function StudentTicketsPage() {
                   }`}
                 >
                   {ticket.status}
+                </td> */}
+                <td className="px-4 py-3 text-center">
+                  <span
+                    className={`font-semibold ${
+                      ticket.used ? "text-red-400" : "text-green-400"
+                    }`}
+                  >
+                    {ticket.used ? "Used" : "⏳ Not Used"}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-center">
                   <button
@@ -184,6 +194,16 @@ export default function StudentTicketsPage() {
                 </span>
               </p>
               <p>
+                <span className="font-semibold">🎫 Used:</span>{" "}
+                <span
+                  className={`font-semibold ${
+                    selectedTicket.used ? "text-red-400" : "text-green-400"
+                  }`}
+                >
+                  {selectedTicket.used ? "✅ Yes" : "⏳ No"}
+                </span>
+              </p>
+              <p>
                 <span className="font-semibold">📅 Booked At:</span>{" "}
                 {selectedTicket.createdAt
                   ? format(
@@ -233,11 +253,13 @@ export default function StudentTicketsPage() {
               />
             </div>
 
-            {selectedQRTicket.used && (
-              <p className="text-red-400 mt-4 font-semibold">
-                ⚠️ Ticket already used
-              </p>
-            )}
+            <p
+              className={`mt-4 font-semibold ${
+                selectedQRTicket.used ? "text-red-400" : "text-green-400"
+              }`}
+            >
+              {selectedQRTicket.used ? "Ticket Used" : "⏳ Ticket Not Used"}
+            </p>
           </div>
         </div>
       )}

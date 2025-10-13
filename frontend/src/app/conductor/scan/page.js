@@ -384,7 +384,7 @@ export default function ScanTicketPage() {
   return (
     <div className="p-6 flex flex-col items-center min-h-screen bg-gradient-to-b from-[#F3E5D7]/20 to-[#3E2F2C]/20">
       <h1 className="text-3xl font-extrabold mb-6 text-[#F3E5D7] drop-shadow-lg">
-        🎟️ Scan Student Ticket
+        Scan Student Ticket
       </h1>
 
       {/* Conductor Bus Info */}
@@ -466,7 +466,7 @@ export default function ScanTicketPage() {
 
         {scanResult && showDetails && (
           <div className="mt-4 p-4 bg-green-600 rounded-2xl w-full text-white text-center shadow-lg animate-fadeIn">
-            ✅ Ticket Valid! <br />
+            Ticket Valid! <br />
             <span className="font-semibold">Passenger:</span>{" "}
             {scanResult.student?.name} <br />
             <span className="font-semibold">Bus:</span> {scanResult.bus?.name} (
