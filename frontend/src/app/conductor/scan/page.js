@@ -140,8 +140,8 @@ export default function ScanTicketPage() {
 
   return (
     <div className="p-6 flex flex-col items-center min-h-screen bg-gradient-to-b from-[#F3E5D7]/20 to-[#3E2F2C]/20">
-      <h1 className="text-3xl font-extrabold mb-6 text-[#3E2F2C] drop-shadow-lg">
-        🎫 Scan Student Ticket
+      <h1 className="text-3xl font-extrabold mb-6 text-[#ccc1be] drop-shadow-lg">
+        🎫 Scan Passenger Ticket
       </h1>
 
       {/* Conductor Bus Info */}
