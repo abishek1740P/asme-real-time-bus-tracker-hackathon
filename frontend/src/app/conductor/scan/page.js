@@ -183,7 +183,7 @@ export default function ScanTicketPage() {
         {scanResult && showDetails && (
           <div className="mt-4 p-4 bg-green-600 rounded-2xl w-full text-white text-center shadow-lg animate-fadeIn">
             ✅ Ticket Valid! <br />
-            <span className="font-semibold">Student:</span>{" "}
+            <span className="font-semibold">Passenger:</span>{" "}
             {scanResult.student?.name} <br />
             <span className="font-semibold">Bus:</span> {scanResult.bus?.name} (
             {scanResult.bus?.number}) <br />
