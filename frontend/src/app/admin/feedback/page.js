@@ -404,7 +404,7 @@ export default function FeedbackPage() {
                 <option value="oldest">📅 Sort by Oldest</option>
               </select>
 
-              <input
+              {/* <input
                 type="date"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
@@ -418,7 +418,7 @@ export default function FeedbackPage() {
                 >
                   Clear Date Filter
                 </button>
-              )}
+              )} */}
             </div>
 
             {/* Table */}
