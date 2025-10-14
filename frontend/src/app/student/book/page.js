@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import CustomToast from "@/components/CustomToast";
+import io from "socket.io-client";
+
+const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL);
 
 export default function BookBusesPage() {
   const [buses, setBuses] = useState([]);
@@ -17,6 +20,7 @@ export default function BookBusesPage() {
   const [isListeningFrom, setIsListeningFrom] = useState(false);
   const [isListeningTo, setIsListeningTo] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [driverStatuses, setDriverStatuses] = useState({}); // Track driver statuses
   const recognitionFromRef = useRef(null);
   const recognitionToRef = useRef(null);
   const router = useRouter();
@@ -103,6 +107,70 @@ export default function BookBusesPage() {
     }
   }, []);
 
+  // Fetch buses & check driver statuses
+  useEffect(() => {
+    async function fetchBuses() {
+      try {
+        const res = await api.get("/buses");
+        const busesData = res.data;
+        setBuses(busesData);
+        setFilteredBuses(busesData);
+
+        // Check driver statuses for all buses
+        busesData.forEach((bus) => {
+          const driverId = bus.driver?._id;
+          if (driverId) {
+            socket.emit("checkDriverStatus", { driverId }, ({ isOnline }) => {
+              setDriverStatuses((prev) => ({
+                ...prev,
+                [driverId]: isOnline,
+              }));
+            });
+          }
+        });
+      } catch (err) {
+        console.error(err);
+        setError("⚠️ Failed to fetch buses.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchBuses();
+
+    // Listen for real-time driver status updates
+    socket.on("driverStatusUpdate", (data) => {
+      if (data.driverId) {
+        setDriverStatuses((prev) => ({
+          ...prev,
+          [data.driverId]: data.isOnline,
+        }));
+      }
+    });
+
+    // Listen for location updates which indicate driver is online
+    socket.on("updateLocation", (data) => {
+      if (data.driverId) {
+        setDriverStatuses((prev) => ({
+          ...prev,
+          [data.driverId]: true,
+        }));
+      }
+    });
+
+    return () => {
+      socket.off("driverStatusUpdate");
+      socket.off("updateLocation");
+    };
+  }, []);
+
+  // Helper function to check if driver is online
+  const isDriverOnline = (bus) => {
+    const driverId = bus.driver?._id;
+    if (!driverId) return false;
+    return driverStatuses[driverId] || false;
+  };
+
   const startListeningFrom = () => {
     if (recognitionFromRef.current) {
       try {
@@ -160,22 +228,6 @@ export default function BookBusesPage() {
     setToLocation("");
     setSearchTerm("");
   };
-
-  useEffect(() => {
-    async function fetchBuses() {
-      try {
-        const res = await api.get("/buses");
-        setBuses(res.data);
-        setFilteredBuses(res.data);
-      } catch (err) {
-        console.error(err);
-        setError("⚠️ Failed to fetch buses.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchBuses();
-  }, []);
 
   // Filter buses by search term and from-to locations
   useEffect(() => {
@@ -428,15 +480,35 @@ export default function BookBusesPage() {
                     <h2 className="text-lg font-semibold text-white">
                       {bus.name} ({bus.number})
                     </h2>
-                    <p className="text-sm text-[#CDBFB4] mt-1">
-                      Route: {bus.route?.name || "Not Assigned"}
-                    </p>
-                    {bus.route?.stops && (
-                      <p className="text-xs text-[#A1887F] mt-1">
-                        Stops: {bus.route.stops.length}
-                      </p>
-                    )}
+
+                    {/* Horizontal Driver Status */}
+                    <div className="flex items-center space-x-4 mt-2">
+                      <div className="flex items-center space-x-2">
+                        <div
+                          className={`w-2 h-2 rounded-full ${
+                            isDriverOnline(bus)
+                              ? "bg-green-400 animate-pulse"
+                              : "bg-red-400"
+                          }`}
+                        ></div>
+                        <span className="text-xs text-[#CDBFB4]">
+                          Driver:{" "}
+                          {isDriverOnline(bus) ? "🟢 Online" : "🔴 Offline"}
+                        </span>
+                      </div>
+
+                      <span className="text-xs text-[#A1887F]">
+                        Route: {bus.route?.name || "Not Assigned"}
+                      </span>
+
+                      {bus.route?.stops && (
+                        <span className="text-xs text-[#A1887F]">
+                          Stops: {bus.route.stops.length}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
