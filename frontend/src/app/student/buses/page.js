@@ -276,59 +276,6 @@ export default function StudentBusesPage() {
 
   return (
     <div className="space-y-4">
-      {/* General Search Bar */}
-      <div className="relative w-full">
-        {/* <input
-          type="text"
-          placeholder="Search by bus name, number, route, or stop..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-3 pr-12 rounded-2xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] transition-all duration-200"
-        /> */}
-
-        {/* Voice Search Button */}
-        {/* {speechSupported && (
-          <button
-            type="button"
-            onClick={() => {
-              if (isListeningFrom || isListeningTo) return;
-              // Use from recognition for general search
-              toggleListeningFrom();
-            }}
-            className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
-              isListeningFrom
-                ? "bg-red-500 text-white animate-pulse"
-                : "bg-[#F5F1ED] text-[#8B7355] hover:bg-[#E8D5C4]"
-            } transition-colors duration-200`}
-            title={isListeningFrom ? "Stop listening" : "Start voice search"}
-            disabled={isListeningTo}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {isListeningFrom ? (
-                <rect x="6" y="6" width="12" height="12" rx="1" />
-              ) : (
-                <>
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="23" />
-                  <line x1="8" y1="23" x2="16" y2="23" />
-                </>
-              )}
-            </svg>
-          </button>
-        )} */}
-      </div>
-
       {/* From - To Section */}
       <div className="bg-[#F5F1ED] rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
@@ -345,7 +292,8 @@ export default function StudentBusesPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Vertical layout for mobile, horizontal for larger screens */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* From Input */}
           <div className="relative">
             <label className="block text-xs text-[#8B7355] mb-1 font-medium">
@@ -357,13 +305,13 @@ export default function StudentBusesPage() {
                 placeholder="Starting point..."
                 value={fromLocation}
                 onChange={(e) => setFromLocation(e.target.value)}
-                className="w-full p-2 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
+                className="w-full p-3 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
               />
               {speechSupported && (
                 <button
                   type="button"
                   onClick={toggleListeningFrom}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full ${
+                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
                     isListeningFrom
                       ? "bg-red-500 text-white animate-pulse"
                       : "bg-[#E8D5C4] text-[#8B7355] hover:bg-[#D4B8A4]"
@@ -375,8 +323,8 @@ export default function StudentBusesPage() {
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -409,13 +357,13 @@ export default function StudentBusesPage() {
                 placeholder="Destination..."
                 value={toLocation}
                 onChange={(e) => setToLocation(e.target.value)}
-                className="w-full p-2 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
+                className="w-full p-3 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
               />
               {speechSupported && (
                 <button
                   type="button"
                   onClick={toggleListeningTo}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full ${
+                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
                     isListeningTo
                       ? "bg-red-500 text-white animate-pulse"
                       : "bg-[#E8D5C4] text-[#8B7355] hover:bg-[#D4B8A4]"
@@ -427,8 +375,8 @@ export default function StudentBusesPage() {
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="12"
+                    width="14"
+                    height="14"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
