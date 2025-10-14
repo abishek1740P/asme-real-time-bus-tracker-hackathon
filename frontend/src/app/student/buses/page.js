@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { getFcmToken } from "@/lib/firebase";
@@ -14,7 +14,83 @@ export default function StudentBusesPage() {
   const [error, setError] = useState("");
   const [subscribedBuses, setSubscribedBuses] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const recognitionRef = useRef(null);
   const router = useRouter();
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        setSpeechSupported(false);
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setSearchTerm(transcript);
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+        if (event.error === "not-allowed") {
+          toast.custom(() => (
+            <CustomToast
+              type="error"
+              message="Microphone permission denied. Please allow microphone access."
+            />
+          ));
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const startListening = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        setIsListening(false);
+      }
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
 
   async function handleNotify(busId, e) {
     e.stopPropagation(); // prevent navigating when clicking button
@@ -41,16 +117,17 @@ export default function StudentBusesPage() {
           return updated;
         });
         toast.custom(() => (
-          <CustomToast type="success" message="You will now receive notifications for this bus." />
+          <CustomToast
+            type="success"
+            message="You will now receive notifications for this bus."
+          />
         ));
-        // alert("✅ You will now receive notifications for this bus.");
       }
     } catch (err) {
       console.error(err);
       toast.custom(() => (
         <CustomToast type="error" message="Failed to update subscription." />
       ));
-      // alert("⚠️ Failed to update subscription.");
     }
   }
 
@@ -84,13 +161,17 @@ export default function StudentBusesPage() {
       const filtered = buses.filter((bus) => {
         const busNameMatch = bus.name.toLowerCase().includes(term);
         const busNumberMatch = bus.number.toLowerCase().includes(term);
-        const routeNameMatch = (bus.route?.name?.toLowerCase() || "").includes(term);
+        const routeNameMatch = (bus.route?.name?.toLowerCase() || "").includes(
+          term
+        );
         const stopNameMatch =
           bus.route?.stops?.some((stop) =>
             (stop.name || "").toLowerCase().includes(term)
           ) || false;
 
-        return busNameMatch || busNumberMatch || routeNameMatch || stopNameMatch;
+        return (
+          busNameMatch || busNumberMatch || routeNameMatch || stopNameMatch
+        );
       });
       setFilteredBuses(filtered);
     }
@@ -98,14 +179,83 @@ export default function StudentBusesPage() {
 
   return (
     <div>
-      {/* Search Bar */}
-      <input
-        type="text"
-        placeholder="Search by bus name, number, route, or stop..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full mb-4 p-2 rounded border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
+      {/* Search Bar with Speech Recognition */}
+      <div className="relative w-full mb-4">
+        <input
+          type="text"
+          placeholder="Search by bus name, number, route, or stop..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-2 pr-12 rounded border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        {/* Voice Search Button */}
+        {speechSupported && (
+          <button
+            type="button"
+            onClick={toggleListening}
+            className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
+              isListening
+                ? "bg-red-500 text-white animate-pulse"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            } transition-colors duration-200`}
+            title={isListening ? "Stop listening" : "Start voice search"}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {isListening ? (
+                // Stop icon when listening
+                <>
+                  <rect x="6" y="6" width="12" height="12" rx="1" />
+                </>
+              ) : (
+                // Mic icon when not listening
+                <>
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </>
+              )}
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Listening Indicator */}
+      {isListening && (
+        <div className="mb-4 p-3 bg-blue-100 border border-blue-300 rounded-lg text-blue-700 flex items-center">
+          <div className="flex space-x-1 mr-3">
+            <div className="w-2 h-6 bg-blue-500 rounded-full animate-bounce"></div>
+            <div
+              className="w-2 h-6 bg-blue-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0.1s" }}
+            ></div>
+            <div
+              className="w-2 h-6 bg-blue-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0.2s" }}
+            ></div>
+          </div>
+          Listening... Speak now
+        </div>
+      )}
+
+      {/* Browser Support Warning */}
+      {!speechSupported && (
+        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-700">
+          Voice search is not supported in your browser. Try Chrome, Edge, or
+          Safari.
+        </div>
+      )}
 
       {loading ? (
         <p>Loading buses...</p>
