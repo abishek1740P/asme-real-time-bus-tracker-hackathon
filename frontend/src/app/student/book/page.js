@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
+import CustomToast from "@/components/CustomToast";
 
 export default function BookBusesPage() {
   const [buses, setBuses] = useState([]);
@@ -10,7 +12,154 @@ export default function BookBusesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [fromLocation, setFromLocation] = useState("");
+  const [toLocation, setToLocation] = useState("");
+  const [isListeningFrom, setIsListeningFrom] = useState(false);
+  const [isListeningTo, setIsListeningTo] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const recognitionFromRef = useRef(null);
+  const recognitionToRef = useRef(null);
   const router = useRouter();
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        setSpeechSupported(false);
+        return;
+      }
+
+      // From location recognition
+      const recognitionFrom = new SpeechRecognition();
+      recognitionFrom.continuous = false;
+      recognitionFrom.interimResults = false;
+      recognitionFrom.lang = "en-US";
+
+      recognitionFrom.onstart = () => {
+        setIsListeningFrom(true);
+      };
+
+      recognitionFrom.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setFromLocation(transcript);
+        setIsListeningFrom(false);
+      };
+
+      recognitionFrom.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListeningFrom(false);
+        if (event.error === "not-allowed") {
+          toast.custom(() => (
+            <CustomToast
+              type="error"
+              message="Microphone permission denied. Please allow microphone access."
+            />
+          ));
+        }
+      };
+
+      recognitionFrom.onend = () => {
+        setIsListeningFrom(false);
+      };
+
+      // To location recognition
+      const recognitionTo = new SpeechRecognition();
+      recognitionTo.continuous = false;
+      recognitionTo.interimResults = false;
+      recognitionTo.lang = "en-US";
+
+      recognitionTo.onstart = () => {
+        setIsListeningTo(true);
+      };
+
+      recognitionTo.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setToLocation(transcript);
+        setIsListeningTo(false);
+      };
+
+      recognitionTo.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListeningTo(false);
+        if (event.error === "not-allowed") {
+          toast.custom(() => (
+            <CustomToast
+              type="error"
+              message="Microphone permission denied. Please allow microphone access."
+            />
+          ));
+        }
+      };
+
+      recognitionTo.onend = () => {
+        setIsListeningTo(false);
+      };
+
+      recognitionFromRef.current = recognitionFrom;
+      recognitionToRef.current = recognitionTo;
+    }
+  }, []);
+
+  const startListeningFrom = () => {
+    if (recognitionFromRef.current) {
+      try {
+        recognitionFromRef.current.start();
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        setIsListeningFrom(false);
+      }
+    }
+  };
+
+  const startListeningTo = () => {
+    if (recognitionToRef.current) {
+      try {
+        recognitionToRef.current.start();
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        setIsListeningTo(false);
+      }
+    }
+  };
+
+  const stopListeningFrom = () => {
+    if (recognitionFromRef.current) {
+      recognitionFromRef.current.stop();
+      setIsListeningFrom(false);
+    }
+  };
+
+  const stopListeningTo = () => {
+    if (recognitionToRef.current) {
+      recognitionToRef.current.stop();
+      setIsListeningTo(false);
+    }
+  };
+
+  const toggleListeningFrom = () => {
+    if (isListeningFrom) {
+      stopListeningFrom();
+    } else {
+      startListeningFrom();
+    }
+  };
+
+  const toggleListeningTo = () => {
+    if (isListeningTo) {
+      stopListeningTo();
+    } else {
+      startListeningTo();
+    }
+  };
+
+  const clearFilters = () => {
+    setFromLocation("");
+    setToLocation("");
+    setSearchTerm("");
+  };
 
   useEffect(() => {
     async function fetchBuses() {
@@ -28,75 +177,281 @@ export default function BookBusesPage() {
     fetchBuses();
   }, []);
 
-  // Filter buses by search term
+  // Filter buses by search term and from-to locations
   useEffect(() => {
-    if (!searchTerm) {
+    if (!searchTerm && !fromLocation && !toLocation) {
       setFilteredBuses(buses);
     } else {
-      const term = searchTerm.toLowerCase();
-      const filtered = buses.filter((bus) => {
-        const busNameMatch = bus.name.toLowerCase().includes(term);
-        const busNumberMatch = bus.number.toLowerCase().includes(term);
-        const routeNameMatch = (bus.route?.name?.toLowerCase() || "").includes(
-          term
-        );
-        const stopNameMatch =
-          bus.route?.stops?.some((stop) =>
-            (stop.name || "").toLowerCase().includes(term)
-          ) || false;
+      const searchTermLower = searchTerm.toLowerCase();
+      const fromLower = fromLocation.toLowerCase();
+      const toLower = toLocation.toLowerCase();
 
-        return (
-          busNameMatch || busNumberMatch || routeNameMatch || stopNameMatch
-        );
+      const filtered = buses.filter((bus) => {
+        // General search term matching
+        const generalSearchMatch = searchTerm
+          ? bus.name.toLowerCase().includes(searchTermLower) ||
+            bus.number.toLowerCase().includes(searchTermLower) ||
+            (bus.route?.name?.toLowerCase() || "").includes(searchTermLower) ||
+            bus.route?.stops?.some((stop) =>
+              (stop.name || "").toLowerCase().includes(searchTermLower)
+            )
+          : true;
+
+        // From-To location matching
+        let fromToMatch = true;
+        if (fromLocation || toLocation) {
+          const stops = bus.route?.stops || [];
+          const stopNames = stops.map((stop) => stop.name.toLowerCase());
+
+          if (fromLocation && toLocation) {
+            // Check if bus goes from 'fromLocation' to 'toLocation'
+            const fromIndex = stopNames.findIndex((stop) =>
+              stop.includes(fromLower)
+            );
+            const toIndex = stopNames.findIndex((stop) =>
+              stop.includes(toLower)
+            );
+            fromToMatch =
+              fromIndex !== -1 && toIndex !== -1 && fromIndex < toIndex;
+          } else if (fromLocation) {
+            // Check if bus has 'fromLocation' in its route
+            fromToMatch = stopNames.some((stop) => stop.includes(fromLower));
+          } else if (toLocation) {
+            // Check if bus has 'toLocation' in its route
+            fromToMatch = stopNames.some((stop) => stop.includes(toLower));
+          }
+        }
+
+        return generalSearchMatch && fromToMatch;
       });
       setFilteredBuses(filtered);
     }
-  }, [searchTerm, buses]);
+  }, [searchTerm, fromLocation, toLocation, buses]);
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold text-white mb-4">Available Buses</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold text-white mb-2">Available Buses</h1>
 
-      {/* Search Bar */}
-      <input
-        type="text"
-        placeholder="Search by bus name, number, route, or stop..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full mb-4 p-2 rounded border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-
-      {loading ? (
-        <p className="text-gray-400">Loading buses...</p>
-      ) : error ? (
-        <p className="text-red-500">{error}</p>
-      ) : filteredBuses.length === 0 ? (
-        <p className="text-gray-400">No buses available.</p>
-      ) : (
-        <div className="grid gap-4">
-          {filteredBuses.map((bus) => (
-            <div
-              key={bus._id}
-              className="bg-[#3E2F2C] hover:bg-[#5D4037] p-4 rounded-lg shadow flex justify-between items-center"
+      {/* From - To Section */}
+      <div className="bg-[#F5F1ED] rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[#3E2F2C] font-semibold text-sm">
+            Find Your Route
+          </h3>
+          {(fromLocation || toLocation) && (
+            <button
+              onClick={clearFilters}
+              className="text-xs text-[#8B7355] hover:text-[#3E2F2C] transition-colors"
             >
-              <div>
-                <h2 className="text-lg font-semibold">
-                  {bus.name} ({bus.number})
-                </h2>
-                <p className="text-sm text-[#CDBFB4]">
-                  Route: {bus.route?.name || "Not Assigned"}
-                </p>
-              </div>
-              <button
-                onClick={() => router.push(`/student/book/${bus._id}`)}
-                className="ml-4 px-3 py-1 rounded text-white bg-blue-500 hover:bg-blue-600"
-              >
-                Book
-              </button>
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Vertical layout for mobile, horizontal for larger screens */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* From Input */}
+          <div className="relative">
+            <label className="block text-xs text-[#8B7355] mb-1 font-medium">
+              From
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Starting point..."
+                value={fromLocation}
+                onChange={(e) => setFromLocation(e.target.value)}
+                className="w-full p-3 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
+              />
+              {speechSupported && (
+                <button
+                  type="button"
+                  onClick={toggleListeningFrom}
+                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
+                    isListeningFrom
+                      ? "bg-red-500 text-white animate-pulse"
+                      : "bg-[#E8D5C4] text-[#8B7355] hover:bg-[#D4B8A4]"
+                  } transition-colors duration-200`}
+                  title={
+                    isListeningFrom ? "Stop listening" : "Voice input for From"
+                  }
+                  disabled={isListeningTo}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    {isListeningFrom ? (
+                      <rect x="6" y="6" width="12" height="12" rx="1" />
+                    ) : (
+                      <>
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+              )}
             </div>
-          ))}
+          </div>
+
+          {/* To Input */}
+          <div className="relative">
+            <label className="block text-xs text-[#8B7355] mb-1 font-medium">
+              To
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Destination..."
+                value={toLocation}
+                onChange={(e) => setToLocation(e.target.value)}
+                className="w-full p-3 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
+              />
+              {speechSupported && (
+                <button
+                  type="button"
+                  onClick={toggleListeningTo}
+                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
+                    isListeningTo
+                      ? "bg-red-500 text-white animate-pulse"
+                      : "bg-[#E8D5C4] text-[#8B7355] hover:bg-[#D4B8A4]"
+                  } transition-colors duration-200`}
+                  title={
+                    isListeningTo ? "Stop listening" : "Voice input for To"
+                  }
+                  disabled={isListeningFrom}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    {isListeningTo ? (
+                      <rect x="6" y="6" width="12" height="12" rx="1" />
+                    ) : (
+                      <>
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Route Display */}
+        {(fromLocation || toLocation) && (
+          <div className="text-center pt-2">
+            <span className="text-xs text-[#3E2F2C] bg-[#E8D5C4] px-3 py-1 rounded-full">
+              🚌 {fromLocation || "Anywhere"} → {toLocation || "Anywhere"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Listening Indicators */}
+      {(isListeningFrom || isListeningTo) && (
+        <div className="p-3 bg-[#E8F4FD] border border-[#8B7355] rounded-xl text-[#3E2F2C] flex items-center justify-center">
+          <div className="flex items-center space-x-2">
+            <div className="flex space-x-1">
+              <div className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"></div>
+              <div
+                className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"
+                style={{ animationDelay: "0.1s" }}
+              ></div>
+              <div
+                className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"
+                style={{ animationDelay: "0.2s" }}
+              ></div>
+            </div>
+            <span className="text-sm">
+              Listening for {isListeningFrom ? "'From'" : "'To'"}... Speak now
+            </span>
+          </div>
         </div>
       )}
+
+      {/* Browser Support Warning */}
+      {!speechSupported && (
+        <div className="p-3 bg-[#FFF3CD] border border-[#FFEaa6] rounded-xl text-[#856404] text-sm">
+          🎤 Voice search is not supported in your browser. Try Chrome, Edge, or
+          Safari.
+        </div>
+      )}
+
+      {/* Results Section */}
+      <div>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B7355]"></div>
+            <p className="mt-2 text-[#3E2F2C]">Loading buses...</p>
+          </div>
+        ) : error ? (
+          <p className="text-red-500 text-center py-4">{error}</p>
+        ) : filteredBuses.length === 0 ? (
+          <div className="text-center py-8 text-[#8B7355]">
+            <p className="text-lg">🚫 No buses found</p>
+            <p className="text-sm mt-1">Try adjusting your search or filters</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-[#3E2F2C] font-semibold">
+                Available Buses ({filteredBuses.length})
+              </h3>
+            </div>
+
+            <div className="grid gap-3">
+              {filteredBuses.map((bus) => (
+                <div
+                  key={bus._id}
+                  onClick={() => router.push(`/student/book/${bus._id}`)}
+                  className="bg-[#3E2F2C] hover:bg-[#5D4037] p-4 rounded-xl shadow-lg flex justify-between items-center cursor-pointer transform hover:scale-[1.02] transition-all duration-200 border border-[#CDBFB4]"
+                >
+                  <div className="flex-1">
+                    <h2 className="text-lg font-semibold text-white">
+                      {bus.name} ({bus.number})
+                    </h2>
+                    <p className="text-sm text-[#CDBFB4] mt-1">
+                      Route: {bus.route?.name || "Not Assigned"}
+                    </p>
+                    {bus.route?.stops && (
+                      <p className="text-xs text-[#A1887F] mt-1">
+                        Stops: {bus.route.stops.length}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/student/book/${bus._id}`);
+                    }}
+                    className="ml-4 px-4 py-2 rounded-xl bg-[#8B7355] hover:bg-[#6B5B4D] text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    Book Now
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
