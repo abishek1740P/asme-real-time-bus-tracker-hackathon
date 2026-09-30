@@ -28,20 +28,27 @@ export default function FirebaseServiceWorker() {
           const body =
             payload?.notification?.body || "Your bus status was updated.";
 
-          // Show a native notification even in foreground
-          if (Notification.permission === "granted") {
-            const notif = new Notification(title, {
-              body,
-              icon: "/bus-icon.svg",
-              badge: "/bus-icon.svg",
-              vibrate: [200, 100, 200],
-              tag: "bus-alert", // prevent duplicate notifications
-              renotify: true,
+          // ✅ IMPORTANT: Chrome blocks new Notification() when a Service Worker is active.
+          // We must use the SW's showNotification() instead via postMessage, OR
+          // call showNotification directly on the SW registration.
+          if (Notification.permission === "granted" && "serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((swReg) => {
+              swReg.showNotification(title, {
+                body,
+                icon: "/bus-icon.svg",
+                badge: "/bus-icon.svg",
+                vibrate: [200, 100, 200],
+                tag: "bus-alert",
+                renotify: true,
+                data: { url: "/student/buses" },
+              });
+            }).catch(() => {
+              // Fallback: try direct notification (works in Firefox)
+              try {
+                const notif = new Notification(title, { body, icon: "/bus-icon.svg" });
+                notif.onclick = () => { window.focus(); notif.close(); };
+              } catch (_) {}
             });
-            notif.onclick = () => {
-              window.focus();
-              notif.close();
-            };
           }
         });
       })

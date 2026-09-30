@@ -23,9 +23,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <link rel="icon" type="image/svg+xml" href="/bus-icon.svg" />
+      <link rel="icon" type="image/svg+xml" href="/bus-icon.svg" />
         <link rel="alternate icon" href="/bus-icon.png" />
         <link rel="apple-touch-icon" href="/bus-icon.png" />
+        {/* Modern PWA meta - replaces deprecated apple-mobile-web-app-capable */}
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"

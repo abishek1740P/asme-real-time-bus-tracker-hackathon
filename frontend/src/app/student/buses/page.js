@@ -143,6 +143,19 @@ export default function StudentBusesPage() {
 
     fetchData();
 
+    // ✅ Silently refresh FCM token on page load to keep it current in DB
+    // This runs in the background without blocking or prompting the user
+    if (Notification.permission === "granted") {
+      getFcmToken()
+        .then((token) => {
+          if (token) {
+            // Quietly update the token in the backend
+            api.post("/notifications/save-token", { token }).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }
+
     // Listen for real-time driver status updates
     socket.on("driverStatusUpdate", (data) => {
       if (data.driverId) {
