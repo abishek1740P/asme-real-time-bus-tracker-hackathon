@@ -15,6 +15,7 @@ firebase.initializeApp({
   apiKey: "AIzaSyClOvH-4r6lKwMnT63HL_-GFHIeOQ-0fz8",
   authDomain: "asme-real-time-bus-tracker.firebaseapp.com",
   projectId: "asme-real-time-bus-tracker",
+  storageBucket: "asme-real-time-bus-tracker.appspot.com",
   messagingSenderId: "751722813063",
   appId: "1:751722813063:web:9df11ad14ab29822b90a22",
 });
