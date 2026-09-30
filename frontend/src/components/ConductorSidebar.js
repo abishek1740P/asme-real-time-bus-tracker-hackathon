@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
-import { Menu, X, LayoutDashboard, QrCode, History, LogOut, Bus as BusIcon, ChevronRight } from "lucide-react";
+import { Menu, X, LayoutDashboard, QrCode, History, LogOut, ChevronRight } from "lucide-react";
 
 export default function ConductorSidebar() {
   const pathname = usePathname();
@@ -23,24 +23,9 @@ export default function ConductorSidebar() {
 
   const SidebarContent = () => (
     <nav className="flex flex-col h-full">
-      {/* Brand */}
-      <div className="px-4 py-5 border-b border-[#3d2618]/60">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-[#c9a97f]/10 border border-[#c9a97f]/20">
-            <BusIcon size={18} className="text-[#c9a97f]" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-[#F3E5D7] tracking-tight">
-              Commu<span className="text-[#c9a97f]">tex</span>
-            </p>
-            <p className="text-[10px] text-[#8c7464]">Conductor Portal</p>
-          </div>
-        </div>
-      </div>
-
-      {/* User Info */}
-      <div className="px-4 py-3 border-b border-[#3d2618]/40">
-        <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-[#140c08]/60">
+      {/* User Info / Profile */}
+      <div className="px-4 py-4 border-b border-[#3d2618]/60">
+        <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-[#140c08]/60 border border-[#3d2618]/40">
           <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-sm">
             {(user?.name || "C")[0].toUpperCase()}
           </div>

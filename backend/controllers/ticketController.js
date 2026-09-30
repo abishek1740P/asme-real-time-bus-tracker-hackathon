@@ -59,7 +59,14 @@ exports.scanTicket = async (req, res) => {
 
     const ticket = await Ticket.findById(ticketId)
       .populate("student", "name email")
-      .populate("bus", "name number route");
+      .populate({
+        path: "bus",
+        select: "name number route driver",
+        populate: [
+          { path: "route", select: "name stops" },
+          { path: "driver", select: "name phone" },
+        ],
+      });
 
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
@@ -68,12 +75,18 @@ exports.scanTicket = async (req, res) => {
     // ✅ Check if ticket belongs to conductor's bus
     if (ticket.bus._id.toString() !== bus._id.toString()) {
       return res.status(403).json({
-        message: "Unauthorized: This ticket is for a different bus!",
+        message: `Unauthorized: This ticket is for Bus ${ticket.bus?.number || "another vehicle"}!`,
+        wrongBus: true,
+        ticket,
       });
     }
 
     if (ticket.used) {
-      return res.status(400).json({ message: "Ticket already used!" });
+      return res.status(400).json({
+        message: "Ticket already redeemed!",
+        alreadyUsed: true,
+        ticket,
+      });
     }
 
     // Mark ticket as used

@@ -139,12 +139,16 @@ exports.getHistory = async (req, res) => {
     const history = tickets.map((t) => ({
       _id: t._id,
       studentName: t.student?.name || "Unknown Student",
+      studentEmail: t.student?.email || "",
       ticketId: t._id,
       scannedAt: t.updatedAt,
       routeName: t.bus?.route?.name || "N/A",
+      busNumber: t.bus?.number || "N/A",
       startPoint: t.startPoint || "N/A",
       stopPoint: t.stopPoint || "N/A",
-      fare: t.fare || "N/A",
+      fare: t.fare || 0,
+      seats: t.seats || 1,
+      paymentId: t.paymentId || "N/A",
     }));
 
     res.json(history);

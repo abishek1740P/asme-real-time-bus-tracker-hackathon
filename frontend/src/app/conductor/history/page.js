@@ -251,6 +251,15 @@ export default function ConductorHistoryPage() {
                 </span>
               </div>
 
+              {selectedTicket.busNumber && (
+                <div className="flex justify-between py-1.5 border-b border-[#2e1c10]/60">
+                  <span className="text-[#8c7464]">Vehicle / Bus</span>
+                  <span className="text-[#c9a97f] font-mono font-semibold">
+                    {selectedTicket.busNumber}
+                  </span>
+                </div>
+              )}
+
               <div className="flex justify-between py-1.5 border-b border-[#2e1c10]/60">
                 <span className="text-[#8c7464]">Route</span>
                 <span className="text-white font-medium">
@@ -260,15 +269,22 @@ export default function ConductorHistoryPage() {
 
               <div className="flex justify-between py-1.5 border-b border-[#2e1c10]/60">
                 <span className="text-[#8c7464]">Boarding Stop</span>
-                <span className="text-white">
+                <span className="text-emerald-400 font-medium">
                   {selectedTicket.startPoint || "N/A"}
                 </span>
               </div>
 
               <div className="flex justify-between py-1.5 border-b border-[#2e1c10]/60">
                 <span className="text-[#8c7464]">Destination Stop</span>
-                <span className="text-white">
+                <span className="text-red-400 font-medium">
                   {selectedTicket.stopPoint || "N/A"}
+                </span>
+              </div>
+
+              <div className="flex justify-between py-1.5 border-b border-[#2e1c10]/60">
+                <span className="text-[#8c7464]">Seats Reserved</span>
+                <span className="text-white font-semibold">
+                  {selectedTicket.seats || 1}
                 </span>
               </div>
 
