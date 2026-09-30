@@ -3,8 +3,19 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
-import CustomToast from "@/components/CustomToast";
 import api from "@/lib/api";
+import {
+  MessageSquare,
+  Car,
+  Star,
+  Send,
+  User,
+  Phone,
+  Mail,
+  Bus,
+  MapPin,
+  CheckCircle,
+} from "lucide-react";
 
 export default function DriverFeedbackPage() {
   const { user } = useAuth();
@@ -21,12 +32,10 @@ export default function DriverFeedbackPage() {
 
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [busInfo, setBusInfo] = useState(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
 
   const maxChars = 200;
 
-  // Fetch driver and bus information when component mounts
   useEffect(() => {
     if (user && user.role === "driver") {
       fetchDriverAndBusInfo();
@@ -36,17 +45,9 @@ export default function DriverFeedbackPage() {
   const fetchDriverAndBusInfo = async () => {
     try {
       setLoadingInfo(true);
-      
-
-      // Fetch assigned bus info
       const busRes = await api.get("/drivers/me/assigned-bus");
-   
 
       if (busRes.data) {
-        setBusInfo(busRes.data);
-
-        // Auto-fill form with driver and bus information
-        // Use proper field access based on your user object structure
         setFormData({
           name: user?.name || user?.username || "",
           driverId: user?.id || user?._id || user?.driverId || "",
@@ -58,11 +59,8 @@ export default function DriverFeedbackPage() {
           rating: 0,
         });
       }
-    } catch (err) {
-
-      toast.custom(() => (
-        <CustomToast type="error" message="Failed to load driver information" />
-      ));
+    } catch {
+      toast.error("Failed to load driver vehicle data");
     } finally {
       setLoadingInfo(false);
     }
@@ -91,270 +89,151 @@ export default function DriverFeedbackPage() {
       !formData.description ||
       formData.rating === 0
     ) {
-      toast.custom(() => (
-        <CustomToast
-          type="error"
-          message="Please fill all fields and select a rating"
-        />
-      ));
+      toast.error("Please fill all fields and choose a rating");
       return;
     }
 
     try {
       setLoading(true);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/driver/feedback`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
-        }
-      );
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to submit feedback");
-      }
-
-      const data = await res.json();
-     
+      await api.post("/driver/feedback", formData);
       setSubmitted(true);
-
-      // Reset only the feedback fields, keep auto-filled info
-      setFormData((prev) => ({
-        ...prev,
-        description: "",
-        rating: 0,
-      }));
-
-      toast.custom(() => (
-        <CustomToast
-          type="success"
-          message="Driver feedback submitted successfully!"
-        />
-      ));
+      toast.success("Driver feedback submitted successfully!");
     } catch (err) {
-     
-      toast.custom(() => (
-        <CustomToast
-          type="error"
-          message={
-            err.message || "Failed to submit feedback. Please try again."
-          }
-        />
-      ));
+      toast.error(err.response?.data?.message || "Failed to submit feedback");
     } finally {
       setLoading(false);
     }
   };
 
-  // If still loading info, show loading state
   if (loadingInfo) {
     return (
-      <div className="p-4 max-w-lg mx-auto text-white">
-        <h1 className="text-2xl font-bold mb-4">🚗 Driver Feedback</h1>
-        <div className="text-center py-8">
-          <div className="inline-flex items-center gap-2 text-[#3498DB]">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#3498DB]"></div>
-            Loading driver information...
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#140c08] text-white flex flex-col items-center justify-center gap-3">
+        <div className="w-10 h-10 border-4 border-[#c9a97f] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-[#a89078]">Loading driver profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-4 max-w-lg mx-auto text-white">
-      <h1 className="text-2xl font-bold mb-4">🚗 Driver Feedback</h1>
+    <div className="min-h-screen bg-[#140c08] text-[#F3E5D7] pt-20 md:pt-24 pb-16 px-4 max-w-xl mx-auto">
+      {/* Header */}
+      <div className="text-center mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#c9a97f]/10 border border-[#c9a97f]/30 text-[#c9a97f] text-xs font-semibold uppercase tracking-wider mb-2">
+          <Car size={13} />
+          Driver Road Report
+        </div>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white">
+          Submit Road & Route Feedback
+        </h1>
+        <p className="text-xs text-[#8c7464] mt-1">
+          Report traffic conditions, vehicle performance, or road safety observations to administration.
+        </p>
+      </div>
 
       {submitted ? (
-        <div className="bg-green-700 text-white p-3 rounded-md shadow">
-          ✅ Thank you for your feedback! We'll review it shortly.
+        <div className="bg-[#1e130c]/90 border border-emerald-500/40 rounded-3xl p-8 text-center shadow-xl animate-fadeIn">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle size={30} />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Feedback Received!</h2>
+          <p className="text-xs text-[#8c7464] mb-6">
+            Thank you for your report. The fleet operations team has logged your submission for review.
+          </p>
+          <button
+            onClick={() => {
+              setSubmitted(false);
+              setFormData((prev) => ({ ...prev, description: "", rating: 0 }));
+            }}
+            className="px-5 py-2.5 rounded-xl bg-[#2a1a11] hover:bg-[#342217] border border-[#3d2618] text-[#c9a97f] text-xs font-semibold transition-colors"
+          >
+            Submit Another Report
+          </button>
         </div>
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 bg-[#2C3E50] p-4 rounded-lg shadow-md"
+          className="bg-[#1e130c]/90 border border-[#3d2618] p-6 rounded-3xl shadow-xl space-y-4"
         >
-          {/* Auto-filled Information Notice */}
-          <div className="bg-[#34495E] p-3 rounded-md border border-[#3498DB]">
-            <p className="text-sm text-[#3498DB] font-medium">
-              ℹ️ Your driver information has been automatically filled. You only
-              need to add your rating and feedback comments.
-            </p>
+          {/* Readonly Dispatch Summary */}
+          <div className="p-3.5 rounded-2xl bg-[#140c08] border border-[#2e1c10] grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-[#8c7464] block text-[10px]">Driver</span>
+              <span className="text-white font-medium flex items-center gap-1.5 truncate">
+                <User size={12} className="text-blue-400 shrink-0" />
+                {formData.name || "N/A"}
+              </span>
+            </div>
+            <div>
+              <span className="text-[#8c7464] block text-[10px]">Bus Registration</span>
+              <span className="text-white font-medium flex items-center gap-1.5 truncate">
+                <Bus size={12} className="text-amber-400 shrink-0" />
+                {formData.vehicleNumber || "N/A"}
+              </span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-[#8c7464] block text-[10px]">Assigned Route</span>
+              <span className="text-white font-medium flex items-center gap-1.5 truncate">
+                <MapPin size={12} className="text-orange-400 shrink-0" />
+                {formData.route || "N/A"}
+              </span>
+            </div>
           </div>
 
-          {/* Name (Read-only since it's auto-filled) */}
+          {/* Rating */}
           <div>
-            <label className="block mb-1 font-medium">Driver Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              readOnly
-              className="w-full p-2 rounded-md shadow-sm bg-[#2C3E50] text-gray-300 border border-[#34495E] cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              {formData.name
-                ? "Auto-filled from your profile"
-                : "Not available"}
-            </p>
-          </div>
-
-          {/* Phone (Read-only) */}
-          <div>
-            <label className="block mb-1 font-medium">Phone Number</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              readOnly
-              className="w-full p-2 rounded-md shadow-sm bg-[#2C3E50] text-gray-300 border border-[#34495E] cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              {formData.phone
-                ? "Auto-filled from your profile"
-                : "Not available in profile"}
-            </p>
-          </div>
-
-          {/* Email (Read-only) */}
-          <div>
-            <label className="block mb-1 font-medium">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              readOnly
-              className="w-full p-2 rounded-md shadow-sm bg-[#2C3E50] text-gray-300 border border-[#34495E] cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              {formData.email
-                ? "Auto-filled from your profile"
-                : "Not available"}
-            </p>
-          </div>
-
-          {/* Vehicle Number (Read-only) */}
-          <div>
-            <label className="block mb-1 font-medium">Vehicle Number</label>
-            <input
-              type="text"
-              name="vehicleNumber"
-              value={formData.vehicleNumber}
-              readOnly
-              className="w-full p-2 rounded-md shadow-sm bg-[#2C3E50] text-gray-300 border border-[#34495E] cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              {formData.vehicleNumber
-                ? "Auto-filled from your assigned bus"
-                : "No bus assigned"}
-            </p>
-          </div>
-
-          {/* Route (Read-only) */}
-          <div>
-            <label className="block mb-1 font-medium">Route</label>
-            <input
-              type="text"
-              name="route"
-              value={formData.route}
-              readOnly
-              className="w-full p-2 rounded-md shadow-sm bg-[#2C3E50] text-gray-300 border border-[#34495E] cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              {formData.route
-                ? "Auto-filled from your assigned route"
-                : "No route assigned"}
-            </p>
-          </div>
-
-          {/* Rating - User needs to select this */}
-          <div>
-            <label className="block mb-3 font-medium">
-              ⭐ How would you rate your experience? (1-10) *
+            <label className="block text-xs font-semibold text-[#c9a97f] mb-2 text-center">
+              Overall Trip / Road Rating (1 - 10)
             </label>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
+            <div className="flex justify-between items-center gap-1">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                 <button
-                  key={star}
+                  key={num}
                   type="button"
-                  onClick={() => handleRatingClick(star)}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 transform hover:scale-110 ${
-                    formData.rating === star
-                      ? "bg-[#3498DB] text-white shadow-lg"
-                      : "bg-[#34495E] text-white hover:bg-[#2980B9]"
+                  onClick={() => handleRatingClick(num)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                    formData.rating === num
+                      ? "bg-[#c9a97f] text-[#140c08] shadow-md scale-105"
+                      : formData.rating > num
+                      ? "bg-[#2a1a11] text-[#c9a97f] border border-[#3d2618]"
+                      : "bg-[#140c08] text-[#8c7464] border border-[#2e1c10] hover:text-white"
                   }`}
                 >
-                  {star}
+                  {num}
                 </button>
               ))}
             </div>
-            <p className="text-center text-sm text-gray-400 mt-2">
-              {formData.rating === 0
-                ? "Click a number to rate"
-                : `You rated: ${formData.rating}/10`}
-            </p>
           </div>
 
-          {/* Description - User needs to fill this */}
+          {/* Remarks */}
           <div>
-            <label className="block mb-1 font-medium">
-              Feedback / Comments *
-            </label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="text-xs font-medium text-[#c9a97f]">
+                Detailed Road & Vehicle Remarks
+              </label>
+              <span className="text-[10px] text-[#8c7464]">
+                {formData.description.length} / {maxChars}
+              </span>
+            </div>
             <textarea
               name="description"
+              rows={4}
               value={formData.description}
               onChange={handleChange}
-              placeholder="Write your feedback about your experience, challenges, suggestions, etc."
-              className="w-full p-2 rounded-md shadow-sm bg-[#34495E] text-white border border-[#2C3E50] focus:ring-2 focus:ring-[#3498DB] outline-none"
-              rows={5}
+              placeholder="Report traffic bottlenecks, road diversions, mechanical concerns, or passenger flow notes..."
+              className="w-full p-3.5 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-xs leading-relaxed focus:outline-none focus:border-[#c9a97f] resize-none"
               required
             />
-            <p className="text-sm text-gray-400 mt-1">
-              {formData.description.length}/{maxChars} characters
-            </p>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
-            disabled={loading || !formData.phone || !formData.email}
-            className="w-full bg-[#34495E] hover:bg-[#3498DB] text-white py-2 rounded-lg shadow disabled:opacity-50 transition-colors duration-200 font-medium"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-[#b3885c] to-[#c9a97f] hover:from-[#c9a97f] hover:to-[#dfc39e] text-[#140c08] font-bold text-xs shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? "Submitting..." : "📝 Submit Driver Feedback"}
+            <Send size={14} />
+            {loading ? "Submitting Report..." : "Submit Driver Feedback"}
           </button>
         </form>
-      )}
-
-      {/* Driver Information Summary */}
-      {!submitted && (
-        <div className="mt-6 bg-[#34495E] p-4 rounded-lg border border-[#2C3E50]">
-          <h3 className="font-medium mb-2 text-[#3498DB]">Your Information</h3>
-          <div className="text-sm text-gray-300 space-y-1">
-            <p>
-              👤 <strong>Name:</strong> {formData.name || "Not available"}
-            </p>
-            <p>
-              📞 <strong>Phone:</strong>{" "}
-              {formData.phone || "Not available in profile"}
-            </p>
-            <p>
-              📧 <strong>Email:</strong> {formData.email || "Not available"}
-            </p>
-            <p>
-              🚌 <strong>Vehicle:</strong>{" "}
-              {formData.vehicleNumber || "No bus assigned"}
-            </p>
-            <p>
-              🗺️ <strong>Route:</strong> {formData.route || "No route assigned"}
-            </p>
-            <p className="text-xs text-gray-400 mt-2">
-              All fields above are automatically filled from your driver profile
-              and assigned bus.
-            </p>
-          </div>
-        </div>
       )}
     </div>
   );

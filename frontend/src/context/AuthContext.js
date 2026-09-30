@@ -4,9 +4,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@/lib/api";
 import { connectSocket, disconnectSocket } from "@/lib/socket";
-// import toast from "react-hot-toast";
-import { messaging, getToken, deleteToken } from "@/lib/firebase-messaging";
 import { initMessaging } from "@/lib/firebase-messaging";
+import { deleteToken } from "firebase/messaging";
 
 const AuthContext = createContext();
 
@@ -58,25 +57,24 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const permission = Notification.permission;
-
-      if (permission === "granted") {
-        const messaging = await initMessaging();
+      if (typeof window !== "undefined" && Notification.permission === "granted") {
+        const messagingInstance = await initMessaging();
         const fcmToken = localStorage.getItem("fcmToken");
-
         const authToken = localStorage.getItem("token");
 
         if (fcmToken && authToken) {
-          await axios.delete("/notifications/delete-token", {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-            data: {
-              token: fcmToken,
-            },
-          });
+          // Remove from backend
+          await axios
+            .delete("/notifications/delete-token", {
+              headers: { Authorization: `Bearer ${authToken}` },
+              data: { token: fcmToken },
+            })
+            .catch(() => {});
 
-          await deleteToken(messaging); // Delete from device
+          // Remove from device
+          if (messagingInstance) {
+            await deleteToken(messagingInstance).catch(() => {});
+          }
         }
       }
     } catch (err) {}
@@ -120,8 +118,11 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {loading ? (
-        <div className="min-h-screen bg-black text-white flex items-center justify-center">
-          <p>Loading...</p>
+        <div className="min-h-screen bg-[#140c08] text-white flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-4 border-[#c9a97f] border-t-transparent rounded-full animate-spin" />
+            <p className="text-[#c9a97f] text-sm font-medium">Loading Commutex...</p>
+          </div>
         </div>
       ) : (
         children

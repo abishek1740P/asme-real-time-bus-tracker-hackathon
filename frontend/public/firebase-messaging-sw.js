@@ -17,9 +17,30 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
+  const title = payload?.notification?.title || "🚍 Bus Alert";
+  const options = {
+    body: payload?.notification?.body || "Your bus status was updated.",
+    icon: "/bus-icon.svg",
+    badge: "/bus-icon.svg",
+    vibrate: [200, 100, 200],
+    data: payload?.data || {},
+  };
 
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
-    icon: "/logo.png",
-  });
+  self.registration.showNotification(title, options);
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow("/student/buses");
+      }
+    })
+  );
 });

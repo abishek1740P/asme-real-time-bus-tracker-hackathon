@@ -246,10 +246,25 @@ export default function StudentBusesPage() {
           updated.delete(busId);
           return updated;
         });
-        alert("❌ You have unsubscribed from this bus.");
+        toast.custom(() => (
+          <CustomToast
+            type="info"
+            message="Unsubscribed from bus notifications."
+          />
+        ));
       } else {
         // Subscribe
         const token = await getFcmToken();
+        if (!token) {
+          toast.custom(() => (
+            <CustomToast
+              type="error"
+              message="Notification permission required. Please allow browser notifications."
+            />
+          ));
+          return;
+        }
+
         await api.post("/notifications/save-token", { token });
         await api.post("/notifications/subscribe", { busId });
 
@@ -261,14 +276,14 @@ export default function StudentBusesPage() {
         toast.custom(() => (
           <CustomToast
             type="success"
-            message="You will now receive notifications for this bus."
+            message="🔔 Subscribed! You will receive live arrival alerts for this bus."
           />
         ));
       }
     } catch (err) {
-      console.error(err);
+      console.error("Subscription error:", err);
       toast.custom(() => (
-        <CustomToast type="error" message="Failed to update subscription." />
+        <CustomToast type="error" message="Failed to update notification subscription." />
       ));
     }
   }
@@ -325,71 +340,74 @@ export default function StudentBusesPage() {
   }, [searchTerm, fromLocation, toLocation, buses]);
 
   return (
-    <div className="space-y-4">
-      {/* From - To Section */}
-      <div className="bg-[#F5F1ED] rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[#3E2F2C] font-semibold text-sm">
-            Find Your Route
-          </h3>
-          {(fromLocation || toLocation) && (
+    <div className="space-y-6">
+      {/* Search & Filter Header Card */}
+      <div className="bg-[#241710]/95 backdrop-blur-md rounded-3xl p-5 sm:p-6 border border-[#442918] shadow-2xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#3b2315] pb-3">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-[#F3E5D7] flex items-center gap-2">
+              <span>🔍</span> Find Campus Buses
+            </h2>
+            <p className="text-xs text-[#b89f8b]">Search by bus name, number, stop, or select route checkpoints</p>
+          </div>
+          {(searchTerm || fromLocation || toLocation) && (
             <button
               onClick={clearFilters}
-              className="text-xs text-[#8B7355] hover:text-[#3E2F2C] transition-colors"
+              className="self-start sm:self-auto text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#d1b8a3] hover:text-white border border-white/10 transition-colors"
             >
-              Clear
+              Clear All Filters
             </button>
           )}
         </div>
 
-        {/* Vertical layout for mobile, horizontal for larger screens */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Global Keyword Search */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search bus name, number, or stop name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-3 rounded-2xl bg-[#1a100b] border border-[#422919] text-[#F3E5D7] placeholder-[#8c7464] focus:outline-none focus:border-[#c9a97f] focus:ring-1 focus:ring-[#c9a97f] text-sm transition-all"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#8c7464] hover:text-white"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* From - To Stop Selection with Voice Support */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           {/* From Input */}
-          <div className="relative">
-            <label className="block text-xs text-[#8B7355] mb-1 font-medium">
-              From
+          <div>
+            <label className="block text-xs font-semibold text-[#c9a97f] mb-1.5">
+              Pickup Point (From)
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Starting point..."
+                placeholder="e.g., SRIT, Ukkadam, Perur..."
                 value={fromLocation}
                 onChange={(e) => setFromLocation(e.target.value)}
-                className="w-full p-3 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
+                className="w-full px-4 py-2.5 pr-11 rounded-2xl bg-[#1a100b] border border-[#422919] text-[#F3E5D7] placeholder-[#8c7464] focus:outline-none focus:border-[#c9a97f] text-sm transition-all"
               />
               {speechSupported && (
                 <button
                   type="button"
                   onClick={toggleListeningFrom}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all ${
                     isListeningFrom
                       ? "bg-red-500 text-white animate-pulse"
-                      : "bg-[#E8D5C4] text-[#8B7355] hover:bg-[#D4B8A4]"
-                  } transition-colors duration-200`}
-                  title={
-                    isListeningFrom ? "Stop listening" : "Voice input for From"
-                  }
+                      : "bg-[#2d1b11] text-[#c9a97f] hover:bg-[#3d2417]"
+                  }`}
+                  title={isListeningFrom ? "Stop listening" : "Voice input"}
                   disabled={isListeningTo}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    {isListeningFrom ? (
-                      <rect x="6" y="6" width="12" height="12" rx="1" />
-                    ) : (
-                      <>
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      </>
-                    )}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {isListeningFrom ? <rect x="6" y="6" width="12" height="12" rx="1" /> : <><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></>}
                   </svg>
                 </button>
               )}
@@ -397,51 +415,32 @@ export default function StudentBusesPage() {
           </div>
 
           {/* To Input */}
-          <div className="relative">
-            <label className="block text-xs text-[#8B7355] mb-1 font-medium">
-              To
+          <div>
+            <label className="block text-xs font-semibold text-[#c9a97f] mb-1.5">
+              Drop-off Point (To)
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Destination..."
+                placeholder="e.g., Sulur, Gandhipuram, SRIT..."
                 value={toLocation}
                 onChange={(e) => setToLocation(e.target.value)}
-                className="w-full p-3 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
+                className="w-full px-4 py-2.5 pr-11 rounded-2xl bg-[#1a100b] border border-[#422919] text-[#F3E5D7] placeholder-[#8c7464] focus:outline-none focus:border-[#c9a97f] text-sm transition-all"
               />
               {speechSupported && (
                 <button
                   type="button"
                   onClick={toggleListeningTo}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-all ${
                     isListeningTo
                       ? "bg-red-500 text-white animate-pulse"
-                      : "bg-[#E8D5C4] text-[#8B7355] hover:bg-[#D4B8A4]"
-                  } transition-colors duration-200`}
-                  title={
-                    isListeningTo ? "Stop listening" : "Voice input for To"
-                  }
+                      : "bg-[#2d1b11] text-[#c9a97f] hover:bg-[#3d2417]"
+                  }`}
+                  title={isListeningTo ? "Stop listening" : "Voice input"}
                   disabled={isListeningFrom}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    {isListeningTo ? (
-                      <rect x="6" y="6" width="12" height="12" rx="1" />
-                    ) : (
-                      <>
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      </>
-                    )}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {isListeningTo ? <rect x="6" y="6" width="12" height="12" rx="1" /> : <><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></>}
                   </svg>
                 </button>
               )}
@@ -449,122 +448,144 @@ export default function StudentBusesPage() {
           </div>
         </div>
 
-        {/* Route Display */}
+        {/* Active Route Tag */}
         {(fromLocation || toLocation) && (
-          <div className="text-center pt-2">
-            <span className="text-xs text-[#3E2F2C] bg-[#E8D5C4] px-3 py-1 rounded-full">
-              🚌 {fromLocation || "Anywhere"} → {toLocation || "Anywhere"}
+          <div className="flex items-center gap-2 pt-1 text-xs text-[#d1b8a3]">
+            <span>Routing Filter:</span>
+            <span className="px-3 py-1 rounded-full bg-[#c9a97f]/15 border border-[#c9a97f]/30 text-[#ecd7bf] font-medium">
+              📍 {fromLocation || "Anywhere"} → {toLocation || "Anywhere"}
             </span>
           </div>
         )}
       </div>
 
-      {/* Listening Indicators */}
+      {/* Voice Listening Indicators */}
       {(isListeningFrom || isListeningTo) && (
-        <div className="p-3 bg-[#E8F4FD] border border-[#8B7355] rounded-xl text-[#3E2F2C] flex items-center justify-center">
-          <div className="flex items-center space-x-2">
-            <div className="flex space-x-1">
-              <div className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"></div>
-              <div
-                className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"
-                style={{ animationDelay: "0.1s" }}
-              ></div>
-              <div
-                className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"
-                style={{ animationDelay: "0.2s" }}
-              ></div>
-            </div>
-            <span className="text-sm">
-              Listening for {isListeningFrom ? "'From'" : "'To'"}... Speak now
-            </span>
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-200 flex items-center justify-center gap-3 animate-pulse">
+          <div className="flex space-x-1">
+            <div className="w-2 h-4 bg-amber-400 rounded-full animate-bounce"></div>
+            <div className="w-2 h-4 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+            <div className="w-2 h-4 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
           </div>
+          <span className="text-xs sm:text-sm font-medium">
+            Listening for {isListeningFrom ? "Pickup Location" : "Destination"}... Speak now!
+          </span>
         </div>
       )}
 
-      {/* Browser Support Warning */}
-      {!speechSupported && (
-        <div className="p-3 bg-[#FFF3CD] border border-[#FFEaa6] rounded-xl text-[#856404] text-sm">
-          🎤 Voice search is not supported in your browser. Try Chrome, Edge, or
-          Safari.
-        </div>
-      )}
-
-      {/* Results Section */}
+      {/* Buses Listing Section */}
       <div>
         {loading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B7355]"></div>
-            <p className="mt-2 text-[#3E2F2C]">Loading buses...</p>
+          <div className="text-center py-16 space-y-3">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-3 border-[#c9a97f] border-t-transparent"></div>
+            <p className="text-sm text-[#b89f8b]">Fetching active fleet schedules...</p>
           </div>
         ) : error ? (
-          <p className="text-red-500 text-center py-4">{error}</p>
+          <div className="p-6 rounded-3xl bg-red-950/40 border border-red-800/40 text-red-300 text-center">
+            <p>{error}</p>
+          </div>
         ) : filteredBuses.length === 0 ? (
-          <div className="text-center py-8 text-[#8B7355]">
-            <p className="text-lg">🚫 No buses found</p>
-            <p className="text-sm mt-1">Try adjusting your search or filters</p>
+          <div className="text-center py-16 px-4 rounded-3xl bg-[#241710]/40 border border-[#3b2315] space-y-3">
+            <span className="text-4xl">🚌</span>
+            <p className="text-lg font-bold text-[#F3E5D7]">No matching buses found</p>
+            <p className="text-xs text-[#b89f8b] max-w-sm mx-auto">
+              Try adjusting the pickup/drop-off stops or clearing your search query.
+            </p>
+            <button
+              onClick={clearFilters}
+              className="mt-2 px-4 py-2 rounded-xl bg-[#c9a97f] text-[#140c08] text-xs font-semibold"
+            >
+              Reset Filters
+            </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <h3 className="text-[#3E2F2C] font-semibold">
-                Available Buses ({filteredBuses.length})
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#cfb6a1] uppercase tracking-wider">
+                Fleet Results ({filteredBuses.length})
               </h3>
+              <span className="text-xs text-[#8c7464]">Tap card to view live map</span>
             </div>
 
-            <div className="grid gap-3">
-              {filteredBuses.map((bus) => (
-                <div
-                  key={bus._id}
-                  onClick={() => router.push(`/student/buses/${bus._id}`)}
-                  className="bg-[#3E2F2C] hover:bg-[#5D4037] p-4 rounded-xl shadow-lg flex justify-between items-center cursor-pointer transform hover:scale-[1.02] transition-all duration-200 border border-[#CDBFB4]"
-                >
-                  <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-white">
-                      {bus.name} ({bus.number})
-                    </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredBuses.map((bus) => {
+                const isOnline = isDriverOnline(bus);
+                const isSubscribed = subscribedBuses.has(bus._id);
 
-                    {/* Horizontal Driver Status */}
-                    <div className="flex items-center space-x-4 mt-2">
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            isDriverOnline(bus)
-                              ? "bg-green-400 animate-pulse"
-                              : "bg-red-400"
-                          }`}
-                        ></div>
-                        <span className="text-xs text-[#CDBFB4]">
-                          Driver:{" "}
-                          {isDriverOnline(bus) ? "🟢 Online" : "🔴 Offline"}
-                        </span>
+                return (
+                  <div
+                    key={bus._id}
+                    onClick={() => router.push(`/student/buses/${bus._id}`)}
+                    className="group relative bg-[#241710] hover:bg-[#2c1c14] border border-[#3d2516] hover:border-[#c9a97f]/60 rounded-3xl p-5 sm:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Top Bar with Name and Online Status */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">🚍</span>
+                            <h2 className="text-lg font-bold text-[#F3E5D7] group-hover:text-[#c9a97f] transition-colors">
+                              {bus.name}
+                            </h2>
+                            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[#d8c0ad]">
+                              {bus.number}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#bca28f] mt-1">
+                            Route: <span className="text-[#e2c7a5] font-medium">{bus.route?.name || "Standard Route"}</span>
+                          </p>
+                        </div>
+
+                        {/* Online Indicator Badge */}
+                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                          isOnline
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                            : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                        }`}>
+                          <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-ping" : "bg-zinc-500"}`}></span>
+                          <span>{isOnline ? "Live Online" : "Offline"}</span>
+                        </div>
                       </div>
 
-                      <span className="text-xs text-[#A1887F]">
-                        Route: {bus.route?.name || "Not Assigned"}
-                      </span>
+                      {/* Driver & Route Info Grid */}
+                      <div className="mt-4 pt-3 border-t border-[#3b2315] grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-black/20 p-2.5 rounded-xl border border-white/5">
+                          <p className="text-[#8c7464]">Assigned Driver</p>
+                          <p className="text-[#e8cfb5] font-medium truncate mt-0.5">
+                            {bus.driver?.name || "TBA"}
+                          </p>
+                        </div>
+                        <div className="bg-black/20 p-2.5 rounded-xl border border-white/5">
+                          <p className="text-[#8c7464]">Route Checkpoints</p>
+                          <p className="text-[#e8cfb5] font-medium mt-0.5">
+                            {bus.route?.stops ? `${bus.route.stops.length} Stops` : "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                      {bus.route?.stops && (
-                        <span className="text-xs text-[#A1887F]">
-                          Stops: {bus.route.stops.length}
-                        </span>
-                      )}
+                    {/* Bottom Actions */}
+                    <div className="mt-5 pt-3 border-t border-[#3b2315] flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={(e) => handleNotify(bus._id, e)}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+                          isSubscribed
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
+                            : "bg-white/5 text-[#d1b8a3] hover:text-white border border-white/10 hover:bg-white/10"
+                        }`}
+                      >
+                        <span>{isSubscribed ? "🔔 Subscribed" : "🔕 Alert Me"}</span>
+                      </button>
+
+                      <div className="flex items-center gap-1 text-xs font-semibold text-[#c9a97f] group-hover:translate-x-1 transition-transform">
+                        <span>Live Tracking</span>
+                        <span>→</span>
+                      </div>
                     </div>
                   </div>
-
-                  <button
-                    onClick={(e) => handleNotify(bus._id, e)}
-                    className={`ml-4 px-4 py-2 rounded-xl text-white font-medium transition-all duration-200 ${
-                      subscribedBuses.has(bus._id)
-                        ? "bg-red-500 hover:bg-red-600 shadow-lg"
-                        : "bg-[#8B7355] hover:bg-[#6B5B4D] shadow-lg hover:shadow-xl"
-                    }`}
-                  >
-                    {subscribedBuses.has(bus._id)
-                      ? "🔔 Subscribed"
-                      : "🔔 Notify Me"}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

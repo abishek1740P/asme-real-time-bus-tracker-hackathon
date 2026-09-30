@@ -112,148 +112,149 @@ export default function FeedbackPage() {
   };
 
   return (
-    <div className="p-4 max-w-lg mx-auto text-white">
-      <h1 className="text-2xl font-bold mb-4">📝 Passenger Feedback</h1>
+    <div className="max-w-xl mx-auto space-y-6 animate-fadeIn">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#F3E5D7] flex items-center gap-2">
+          <span>📝</span> Passenger Experience Feedback
+        </h1>
+        <p className="text-xs sm:text-sm text-[#b89f8b]">
+          Your ratings and reports help us improve route timing, driver courtesy, and bus safety.
+        </p>
+      </div>
 
       {submitted ? (
-        <div className="bg-green-700 text-white p-3 rounded-md shadow">
-          Thank you for your feedback!
+        <div className="p-8 rounded-3xl bg-emerald-950/40 border border-emerald-700/50 text-center space-y-3 shadow-2xl">
+          <span className="text-5xl">🎉</span>
+          <h2 className="text-xl font-bold text-emerald-200">Thank You For Your Feedback!</h2>
+          <p className="text-xs sm:text-sm text-emerald-300/80 max-w-sm mx-auto">
+            Your review has been successfully submitted and dispatched to the campus transit administration team.
+          </p>
+          <button
+            onClick={() => setSubmitted(false)}
+            className="mt-4 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs transition"
+          >
+            Submit Another Feedback
+          </button>
         </div>
       ) : (
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 bg-[#3E2F2C] p-4 rounded-lg shadow-md"
+          className="bg-[#241710] rounded-3xl p-6 sm:p-8 border border-[#442918] shadow-2xl space-y-5"
         >
-          {/* Auto-filled Information Notice */}
-          <div className="bg-[#5D4037] p-3 rounded-md border border-[#7B4B32]">
-            <p className="text-sm text-[#FFD700] font-medium">
-              ℹ️ Some information has been automatically filled. Please provide
-              your phone number, rating, and feedback.
+          {/* Identity Notice */}
+          <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl flex items-center gap-3">
+            <span className="text-lg">ℹ️</span>
+            <p className="text-xs text-amber-200/90 font-medium">
+              Profile details are verified automatically. Please rate your transit experience and provide details.
             </p>
           </div>
 
-          {/* Name - Read-only */}
-          <div>
-            <label className="block mb-1 font-medium">Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              readOnly
-              className="w-full p-2 rounded-md shadow-sm bg-[#4A352F] text-gray-300 border border-[#3E2F2C] cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Auto-filled from your profile
-            </p>
+          {/* Name & Email Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-[#c9a97f] mb-1.5">Passenger Name</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                readOnly
+                className="w-full px-4 py-2.5 rounded-2xl bg-black/40 text-[#c4aa97] border border-white/5 text-sm cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#c9a97f] mb-1.5">Registered Email</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                readOnly
+                className="w-full px-4 py-2.5 rounded-2xl bg-black/40 text-[#c4aa97] border border-white/5 text-sm cursor-not-allowed truncate"
+              />
+            </div>
           </div>
 
-          {/* Phone - Enterable by user */}
+          {/* Phone Number */}
           <div>
-            <label className="block mb-1 font-medium">Phone Number *</label>
+            <label className="block text-xs font-semibold text-[#c9a97f] mb-1.5">Contact Phone Number *</label>
             <input
               type="tel"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="Enter your phone number"
-              className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
+              placeholder="e.g. 9876543210"
+              className="w-full px-4 py-2.5 rounded-2xl bg-[#1a100b] border border-[#422919] text-[#F3E5D7] placeholder-[#8c7464] focus:outline-none focus:border-[#c9a97f] text-sm"
               required
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Please enter your phone number
-            </p>
           </div>
 
-          {/* Email - Read-only */}
+          {/* Rating Scale */}
           <div>
-            <label className="block mb-1 font-medium">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              readOnly
-              className="w-full p-2 rounded-md shadow-sm bg-[#4A352F] text-gray-300 border border-[#3E2F2C] cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Auto-filled from your profile
-            </p>
-          </div>
-
-          {/* Rating - User needs to select this */}
-          <div>
-            <label className="block mb-3 font-medium">
-              ⭐ How would you rate your experience? (1-10) *
-            </label>
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-[#c9a97f]">
+                Rate Service & Safety (1 to 10) *
+              </label>
+              <span className="text-xs font-bold text-[#e6c79c]">
+                {formData.rating === 0 ? "Select Rating" : `${formData.rating} / 10`}
+              </span>
+            </div>
+            <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => (
                 <button
                   key={star}
                   type="button"
                   onClick={() => handleRatingClick(star)}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 transform hover:scale-110 ${
+                  className={`py-2 rounded-xl text-xs font-black transition-all ${
                     formData.rating === star
-                      ? "bg-[#FFD700] text-[#3E2F2C] shadow-lg"
-                      : "bg-[#5D4037] text-white hover:bg-[#7B4B32]"
+                      ? "bg-[#c9a97f] text-[#140c08] shadow-lg shadow-[#c9a97f]/30 scale-105"
+                      : "bg-[#1a100b] text-[#d1b8a3] hover:bg-[#331e12] border border-[#442918]"
                   }`}
                 >
                   {star}
                 </button>
               ))}
             </div>
-            <p className="text-center text-sm text-gray-400 mt-2">
-              {formData.rating === 0
-                ? "Click a number to rate"
-                : `You rated: ${formData.rating}/10`}
-            </p>
           </div>
 
-          {/* Description - User needs to fill this */}
+          {/* Description */}
           <div>
-            <label className="block mb-1 font-medium">
-              Feedback / Comments *
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-[#c9a97f]">
+                Detailed Feedback & Comments *
+              </label>
+              <span className="text-[11px] text-[#8c7464]">
+                {formData.description.length}/{maxChars}
+              </span>
+            </div>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Write your feedback about the bus service, driver, route, etc."
-              className="w-full p-2 rounded-md shadow-sm bg-[#5D4037] text-white border border-[#3E2F2C] focus:ring-2 focus:ring-[#7B4B32] outline-none"
-              rows={5}
+              placeholder="Share thoughts about driver punctuality, bus cleanliness, ticket scanning, or overall route schedule..."
+              className="w-full px-4 py-3 rounded-2xl bg-[#1a100b] border border-[#422919] text-[#F3E5D7] placeholder-[#8c7464] focus:outline-none focus:border-[#c9a97f] text-sm leading-relaxed"
+              rows={4}
               required
             />
-            <p className="text-sm text-gray-400 mt-1">
-              {formData.description.length}/{maxChars} characters
-            </p>
           </div>
 
-          {/* Submit */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#5D4037] hover:bg-[#7B4B32] text-white py-2 rounded-lg shadow disabled:opacity-50 transition-colors duration-200 font-medium"
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#c9a97f] to-[#b3885c] hover:brightness-110 disabled:opacity-50 text-[#140c08] font-bold text-sm shadow-xl shadow-[#c9a97f]/20 active:scale-98 transition-all flex items-center justify-center gap-2"
           >
-            {loading ? "Submitting..." : "✨ Submit Feedback"}
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-[#140c08] border-t-transparent rounded-full animate-spin"></div>
+                <span>Submitting Feedback...</span>
+              </>
+            ) : (
+              <>
+                <span>✨ Submit Passenger Feedback</span>
+                <span>→</span>
+              </>
+            )}
           </button>
         </form>
-      )}
-
-      {/* User Information Summary */}
-      {!submitted && (
-        <div className="mt-6 bg-[#5D4037] p-4 rounded-lg border border-[#3E2F2C]">
-          <h3 className="font-medium mb-2 text-[#FFD700]">Your Information</h3>
-          <div className="text-sm text-gray-300 space-y-1">
-            <p>
-              👤 <strong>Name:</strong> {formData.name || "Loading..."}
-            </p>
-            <p>
-              📧 <strong>Email:</strong> {formData.email || "Loading..."}
-            </p>
-            <p className="text-xs text-gray-400 mt-2">
-              Name and Email are auto-filled. Please enter your phone number
-              above.
-            </p>
-          </div>
-        </div>
       )}
     </div>
   );

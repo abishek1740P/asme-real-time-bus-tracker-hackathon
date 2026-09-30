@@ -6,6 +6,17 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import AdminSidebar from "@/components/AdminSidebar";
 import toast from "react-hot-toast";
+import {
+  MessageSquare,
+  Users,
+  Car,
+  Star,
+  Calendar,
+  Search,
+  Filter,
+  BarChart3,
+  AlertCircle,
+} from "lucide-react";
 
 export default function FeedbackPage() {
   const { user, loading } = useAuth();
@@ -13,11 +24,10 @@ export default function FeedbackPage() {
 
   const [feedbacks, setFeedbacks] = useState([]);
   const [sortOrder, setSortOrder] = useState("newest");
-  const [filterDate, setFilterDate] = useState("");
-  const [feedbackType, setFeedbackType] = useState("passenger"); // "passenger" or "driver"
+  const [search, setSearch] = useState("");
+  const [feedbackType, setFeedbackType] = useState("passenger");
   const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
 
-  // 🚫 Admin Access Check
   useEffect(() => {
     if (!loading) {
       if (!user) {
@@ -30,7 +40,6 @@ export default function FeedbackPage() {
     }
   }, [user, loading, router]);
 
-  // Fetch Feedback based on type
   useEffect(() => {
     if (user && user.role === "admin") {
       fetchFeedbacks();
@@ -40,11 +49,10 @@ export default function FeedbackPage() {
   const fetchFeedbacks = async () => {
     try {
       setLoadingFeedbacks(true);
-      const endpoint = feedbackType === "passenger" 
-        ? "/student/feedback" 
-        : "/driver/feedback";
+      const endpoint =
+        feedbackType === "passenger" ? "/student/feedback" : "/driver/feedback";
       const res = await api.get(endpoint);
-      setFeedbacks(res.data);
+      setFeedbacks(res.data || []);
     } catch (err) {
       toast.error(`Failed to load ${feedbackType} feedback`);
     } finally {
@@ -52,25 +60,21 @@ export default function FeedbackPage() {
     }
   };
 
-  // Calculate rating statistics
   const calculateRatingStats = () => {
-    const filtered = feedbacks.filter((fb) => {
-      if (!filterDate) return true;
-      const fbDate = new Date(fb.createdAt).toISOString().split("T")[0];
-      return fbDate === filterDate;
-    });
-
-    const total = filtered.length;
+    const total = feedbacks.length;
     if (total === 0) return null;
 
     const average = (
-      filtered.reduce((sum, fb) => sum + fb.rating, 0) / total
+      feedbacks.reduce((sum, fb) => sum + (fb.rating || 0), 0) / total
     ).toFixed(1);
 
     const distribution = Array(10).fill(0);
-    filtered.forEach((fb) => distribution[fb.rating - 1]++);
+    feedbacks.forEach((fb) => {
+      if (fb.rating >= 1 && fb.rating <= 10) {
+        distribution[fb.rating - 1]++;
+      }
+    });
 
-    // Calculate percentages for pie chart
     let currentAngle = 0;
     const pieData = distribution.map((count, index) => {
       const percentage = (count / total) * 100;
@@ -96,7 +100,6 @@ export default function FeedbackPage() {
 
   const stats = calculateRatingStats();
 
-  // Color palette for pie chart
   const ratingColors = [
     "#EF4444",
     "#F97316",
@@ -110,13 +113,15 @@ export default function FeedbackPage() {
     "#8B5CF6",
   ];
 
-  // Apply sorting + filtering
   const processedFeedbacks = feedbacks
-    .filter((fb) => {
-      if (!filterDate) return true;
-      const fbDate = new Date(fb.createdAt).toISOString().split("T")[0];
-      return fbDate === filterDate;
-    })
+    .filter(
+      (fb) =>
+        fb.name?.toLowerCase().includes(search.toLowerCase()) ||
+        fb.email?.toLowerCase().includes(search.toLowerCase()) ||
+        fb.description?.toLowerCase().includes(search.toLowerCase()) ||
+        (fb.vehicleNumber &&
+          fb.vehicleNumber.toLowerCase().includes(search.toLowerCase()))
+    )
     .sort((a, b) => {
       if (sortOrder === "newest") {
         return new Date(b.createdAt) - new Date(a.createdAt);
@@ -127,385 +132,215 @@ export default function FeedbackPage() {
 
   if (loading || !user || user.role !== "admin") {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        <p>Checking access...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#140c08] text-white">
+        <div className="w-10 h-10 border-4 border-[#c9a97f] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#1f1b16] text-[#F3E5D7]">
+    <div className="min-h-screen bg-[#140c08] text-[#F3E5D7]">
       <AdminSidebar />
-      <main className="p-4 md:p-8 md:ml-64">
-        {/* Header with Toggle */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-          <h2 className="text-2xl font-bold text-[#F3E5D7]">
-            {feedbackType === "passenger" ? "🚌 Passenger" : "🚗 Driver"} Feedback Analytics
-          </h2>
-          
-          {/* Toggle Switch */}
-          <div className="flex items-center gap-4 bg-[#2D2421] p-2 rounded-lg border border-[#40352F]">
+      <main className="pt-20 md:pt-24 pb-16 px-4 md:px-8 md:ml-64 max-w-7xl">
+        {/* Header with Type Selector */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+              <MessageSquare className="text-[#c9a97f]" />
+              {feedbackType === "passenger" ? "Passenger" : "Driver"} Feedback Analytics
+            </h1>
+            <p className="text-xs md:text-sm text-[#8c7464] mt-0.5">
+              Review passenger satisfaction ratings and driver road reports.
+            </p>
+          </div>
+
+          {/* Toggle pill */}
+          <div className="flex items-center gap-1.5 bg-[#1e130c] p-1.5 rounded-2xl border border-[#3d2618]">
             <button
               onClick={() => setFeedbackType("passenger")}
-              className={`px-4 py-2 rounded-md transition-all duration-300 font-medium flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
                 feedbackType === "passenger"
-                  ? "bg-[#8B0000] text-white shadow-lg"
-                  : "text-gray-400 hover:text-white"
+                  ? "bg-[#c9a97f] text-[#140c08] shadow-md"
+                  : "text-[#8c7464] hover:text-white"
               }`}
             >
-              👥 Passenger
+              <Users size={15} />
+              Passenger Feedback
             </button>
             <button
               onClick={() => setFeedbackType("driver")}
-              className={`px-4 py-2 rounded-md transition-all duration-300 font-medium flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
                 feedbackType === "driver"
-                  ? "bg-[#2C3E50] text-white shadow-lg"
-                  : "text-gray-400 hover:text-white"
+                  ? "bg-[#c9a97f] text-[#140c08] shadow-md"
+                  : "text-[#8c7464] hover:text-white"
               }`}
             >
-              🚗 Driver
+              <Car size={15} />
+              Driver Feedback
             </button>
           </div>
         </div>
 
-        {/* Loading State */}
-        {loadingFeedbacks && (
-          <div className="text-center py-8">
-            <div className="inline-flex items-center gap-2 text-[#FFD700]">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFD700]"></div>
-              Loading {feedbackType} feedback...
-            </div>
+        {/* Loading */}
+        {loadingFeedbacks ? (
+          <div className="text-center py-16">
+            <div className="w-8 h-8 border-3 border-[#c9a97f] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-xs text-[#8c7464]">Loading feedback telemetry...</p>
           </div>
-        )}
-
-        {/* Rating Demographics */}
-        {!loadingFeedbacks && stats && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Overall Stats */}
-            <div className="bg-[#2D2421] p-6 rounded-lg border border-[#40352F]">
-              <h3 className="text-lg font-bold mb-4 text-[#F3E5D7] flex items-center gap-2">
-                {feedbackType === "passenger" ? "👥" : "🚗"} Overall Rating
-                <span className="text-sm font-normal text-[#FFD700] bg-[#3A2E2A] px-2 py-1 rounded-full">
-                  {feedbackType === "passenger" ? "Passenger" : "Driver"} Feedback
-                </span>
-              </h3>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-[#FFD700] mb-2">
-                  {stats.average}/10
-                </div>
-                <div className="text-gray-400">Average Rating</div>
-                <div className="text-sm text-gray-400 mt-2">
-                  Based on {stats.total} {feedbackType} feedbacks
-                </div>
-
-                {/* Rating Breakdown */}
-                <div className="mt-6 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Excellent (9-10):</span>
-                    <span className="text-[#FFD700]">
-                      {stats.distribution
-                        .slice(8)
-                        .reduce((sum, item) => sum + item.count, 0)}{" "}
-                      feedbacks
+        ) : (
+          <>
+            {/* Stats Summary */}
+            {stats && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+                {/* Average score card */}
+                <div className="bg-[#1e130c]/80 border border-[#2e1c10] p-6 rounded-2xl flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#a89078]">
+                      Net Rating Score
                     </span>
+                    <Star size={18} className="text-amber-400 fill-amber-400" />
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Good (7-8):</span>
-                    <span className="text-[#84CC16]">
-                      {stats.distribution
-                        .slice(6, 8)
-                        .reduce((sum, item) => sum + item.count, 0)}{" "}
-                      feedbacks
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Average (5-6):</span>
-                    <span className="text-[#F59E0B]">
-                      {stats.distribution
-                        .slice(4, 6)
-                        .reduce((sum, item) => sum + item.count, 0)}{" "}
-                      feedbacks
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Poor (1-4):</span>
-                    <span className="text-[#EF4444]">
-                      {stats.distribution
-                        .slice(0, 4)
-                        .reduce((sum, item) => sum + item.count, 0)}{" "}
-                      feedbacks
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Circular Pie Chart */}
-            <div className="bg-[#2D2421] p-6 rounded-lg border border-[#40352F]">
-              <h3 className="text-lg font-bold mb-4 text-[#F3E5D7] text-center flex items-center justify-center gap-2">
-                Rating Distribution
-                <span className="text-xs font-normal text-[#FFD700] bg-[#3A2E2A] px-2 py-1 rounded-full">
-                  {stats.total} total
-                </span>
-              </h3>
-              <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
-                {/* Pie Chart */}
-                <div className="relative w-48 h-48">
-                  <svg
-                    viewBox="0 0 100 100"
-                    className="w-full h-full transform -rotate-90"
-                  >
-                    {stats.distribution.map(
-                      (item, index) =>
-                        item.percentage > 0 && (
-                          <circle
-                            key={item.rating}
-                            cx="50"
-                            cy="50"
-                            r="40"
-                            fill="transparent"
-                            stroke={ratingColors[index]}
-                            strokeWidth="20"
-                            strokeDasharray={`${item.percentage} ${
-                              100 - item.percentage
-                            }`}
-                            strokeDashoffset={
-                              100 - item.startAngle * (100 / 360)
-                            }
-                            className="transition-all duration-500 ease-out"
-                          />
-                        )
-                    )}
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-[#FFD700]">
-                        {stats.average}
-                      </div>
-                      <div className="text-xs text-gray-400">Avg Rating</div>
+                  <div>
+                    <div className="text-4xl md:text-5xl font-black text-white flex items-baseline gap-1">
+                      {stats.average}
+                      <span className="text-base text-[#8c7464] font-normal">/ 10</span>
                     </div>
+                    <p className="text-xs text-[#8c7464] mt-2">
+                      Aggregated across {stats.total} total {feedbackType} reviews
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-[#2e1c10] flex items-center justify-between text-xs">
+                    <span className="text-[#a89078]">Response Sentiment</span>
+                    <span className="text-emerald-400 font-semibold">
+                      {parseFloat(stats.average) >= 7 ? "Very Positive" : "Moderate"}
+                    </span>
                   </div>
                 </div>
 
-                {/* Legend */}
-                <div className="space-y-2 max-w-xs">
-                  <h4 className="font-medium text-[#F3E5D7] mb-2">
-                    Rating Legend
-                  </h4>
-                  {stats.distribution.map(
-                    (item, index) =>
-                      item.count > 0 && (
-                        <div
-                          key={item.rating}
-                          className="flex items-center justify-between text-sm"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: ratingColors[index] }}
-                            ></div>
-                            <span>{item.rating} ⭐</span>
+                {/* Rating Distribution Bar */}
+                <div className="lg:col-span-2 bg-[#1e130c]/80 border border-[#2e1c10] p-6 rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <BarChart3 size={16} className="text-[#c9a97f]" />
+                      Rating Spread (1 to 10 Stars)
+                    </h3>
+                    <span className="text-xs text-[#8c7464]">{stats.total} total submissions</span>
+                  </div>
+                  <div className="grid grid-cols-10 gap-1.5 items-end h-28 pt-2">
+                    {stats.distribution.map((item) => {
+                      const heightPercent = stats.total > 0 ? (item.count / stats.total) * 100 : 0;
+                      return (
+                        <div key={item.rating} className="flex flex-col items-center h-full justify-end group">
+                          <div className="text-[10px] text-[#8c7464] mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {item.count}
                           </div>
-                          <span className="text-gray-400">
-                            {item.count} ({item.percentage}%)
+                          <div
+                            className="w-full rounded-t-md transition-all duration-300"
+                            style={{
+                              height: `${Math.max(heightPercent, 6)}%`,
+                              backgroundColor: ratingColors[item.rating - 1],
+                            }}
+                          />
+                          <span className="text-[10px] text-[#a89078] mt-1.5 font-medium">
+                            {item.rating}
                           </span>
                         </div>
-                      )
-                  )}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* Alternative: Donut Chart View */}
-        {!loadingFeedbacks && stats && (
-          <div className="bg-[#2D2421] p-6 rounded-lg border border-[#40352F] mb-8">
-            <h3 className="text-lg font-bold mb-4 text-[#F3E5D7] text-center">
-              Detailed Rating Analysis - {feedbackType === "passenger" ? "Passenger" : "Driver"} Feedback
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {stats.distribution.map((item, index) => (
-                <div key={item.rating} className="text-center">
-                  <div className="relative inline-block mb-2">
-                    <svg
-                      width="80"
-                      height="80"
-                      className="transform -rotate-90"
-                    >
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="35"
-                        fill="transparent"
-                        stroke="#3A2E2A"
-                        strokeWidth="6"
-                      />
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="35"
-                        fill="transparent"
-                        stroke={ratingColors[index]}
-                        strokeWidth="6"
-                        strokeDasharray={`${item.percentage} ${
-                          100 - item.percentage
-                        }`}
-                        className="transition-all duration-700 ease-out"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div>
-                        <div className="text-lg font-bold text-[#FFD700]">
-                          {item.rating}
-                        </div>
-                        <div className="text-xs text-gray-400">⭐</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-sm">
-                    <div className="font-medium">{item.count}</div>
-                    <div className="text-gray-400 text-xs">
-                      {item.percentage}%
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8c7464]" />
+                <input
+                  type="text"
+                  placeholder="Search reviews by name, email, or remarks..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#1e130c]/70 border border-[#2e1c10] text-xs md:text-sm text-[#F3E5D7] placeholder-[#8c7464] focus:outline-none focus:border-[#c9a97f]"
+                />
+              </div>
 
-        {/* No Data Message */}
-        {!loadingFeedbacks && (!stats || stats.total === 0) && (
-          <div className="text-center py-12 bg-[#2D2421] rounded-lg border border-[#40352F]">
-            <div className="text-6xl mb-4">
-              {feedbackType === "passenger" ? "👥" : "🚗"}
-            </div>
-            <h3 className="text-xl font-bold text-[#F3E5D7] mb-2">
-              No {feedbackType} feedback yet
-            </h3>
-            <p className="text-gray-400">
-              There are no {feedbackType} feedback submissions to display.
-            </p>
-          </div>
-        )}
-
-        {/* Filters and Table */}
-        {!loadingFeedbacks && stats && stats.total > 0 && (
-          <>
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
-                className="bg-[#2D2421] text-white px-3 py-2 rounded-lg border border-[#40352F]"
+                className="px-3 py-2.5 rounded-xl bg-[#1e130c] border border-[#2e1c10] text-xs text-[#F3E5D7] focus:outline-none focus:border-[#c9a97f]"
               >
-                <option value="newest">📅 Sort by Newest</option>
-                <option value="oldest">📅 Sort by Oldest</option>
+                <option value="newest">Latest First</option>
+                <option value="oldest">Oldest First</option>
               </select>
-
-              {/* <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="bg-[#2D2421] text-white px-3 py-2 rounded-lg border border-[#40352F]"
-              />
-
-              {filterDate && (
-                <button
-                  onClick={() => setFilterDate("")}
-                  className="bg-[#5D4037] hover:bg-[#7B4B32] px-4 py-2 rounded text-white transition-colors"
-                >
-                  Clear Date Filter
-                </button>
-              )} */}
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto bg-[#2D2421] rounded-lg border border-[#40352F]">
-              <table className="min-w-full">
-                <thead className="bg-[#3A2E2A]">
-                  <tr>
-                    <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                      Name
-                    </th>
-                    <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                      Phone
-                    </th>
-                    <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                      Email
-                    </th>
-                    {feedbackType === "driver" && (
-                      <>
-                        <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                          Driver ID
-                        </th>
-                        <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                          Vehicle
-                        </th>
-                        <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                          Route
-                        </th>
-                      </>
-                    )}
-                    <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                      Rating
-                    </th>
-                    <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                      Feedback
-                    </th>
-                    <th className="px-4 py-3 border-b border-[#40352F] text-left">
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {processedFeedbacks.map((fb) => (
-                    <tr
-                      key={fb._id}
-                      className="hover:bg-[#3A2E2A] border-b border-[#40352F] last:border-b-0"
-                    >
-                      <td className="px-4 py-3">{fb.name}</td>
-                      <td className="px-4 py-3">{fb.phone}</td>
-                      <td className="px-4 py-3">{fb.email}</td>
-                      {feedbackType === "driver" && (
-                        <>
-                          <td className="px-4 py-3 text-sm text-gray-300">
-                            {fb.driverId}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-300">
-                            {fb.vehicleNumber}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-300">
-                            {fb.route}
-                          </td>
-                        </>
-                      )}
-                      <td className="px-4 py-3">
+            {/* Feedback Cards & Table */}
+            {processedFeedbacks.length === 0 ? (
+              <div className="text-center py-16 px-4 bg-[#1e130c]/40 rounded-2xl border border-[#2e1c10]">
+                <AlertCircle size={40} className="mx-auto text-[#8c7464] mb-3" />
+                <p className="text-base text-[#F3E5D7] font-semibold">No feedback records found</p>
+                <p className="text-xs text-[#8c7464] mt-1">
+                  {search ? "Try refining your search terms" : "No responses collected yet"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                {processedFeedbacks.map((fb) => (
+                  <div
+                    key={fb._id}
+                    className="bg-[#1e130c]/80 border border-[#2e1c10] p-5 rounded-2xl shadow-lg flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <h4 className="text-sm font-bold text-white">{fb.name}</h4>
+                          <span className="text-xs text-[#8c7464]">{fb.email}</span>
+                        </div>
                         <span
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm shrink-0"
                           style={{
-                            backgroundColor: ratingColors[fb.rating - 1],
-                            boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                            backgroundColor: ratingColors[(fb.rating || 1) - 1],
                           }}
                         >
-                          ⭐ {fb.rating}/10
+                          <Star size={11} className="fill-white" />
+                          {fb.rating}/10
                         </span>
-                      </td>
-                      <td
-                        className="px-4 py-3 max-w-xs truncate"
-                        title={fb.description}
-                      >
-                        {fb.description}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-300">
-                        {new Date(fb.createdAt).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+
+                      {feedbackType === "driver" && (
+                        <div className="grid grid-cols-3 gap-2 p-2 rounded-xl bg-[#140c08] border border-[#2e1c10] mb-3 text-[11px]">
+                          <div>
+                            <span className="text-[#8c7464] block">Driver ID</span>
+                            <span className="text-white font-medium truncate block">{fb.driverId || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#8c7464] block">Vehicle</span>
+                            <span className="text-white font-medium truncate block">{fb.vehicleNumber || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#8c7464] block">Route</span>
+                            <span className="text-white font-medium truncate block">{fb.route || "—"}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-xs text-[#D7CCC8] leading-relaxed bg-[#140c08]/50 p-3 rounded-xl border border-[#2e1c10]">
+                        "{fb.description || "No comment provided."}"
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-[#8c7464] mt-3 pt-2 border-t border-[#2e1c10]/60">
+                      <span>{fb.phone || "No phone"}</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar size={11} />
+                        {new Date(fb.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </main>

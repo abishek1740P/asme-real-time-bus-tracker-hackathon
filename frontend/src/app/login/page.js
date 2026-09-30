@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Bus } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import CustomToast from "@/components/CustomToast";
@@ -20,12 +20,8 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
     setValue,
-    watch,
   } = useForm({
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
 
   // Load saved credentials from localStorage
@@ -41,7 +37,6 @@ export default function LoginPage() {
       toast.custom(() => (
         <CustomToast type="info" message="Already logged in!" />
       ));
-
       const redirectPath =
         user.role === "admin"
           ? "/admin/dashboard"
@@ -50,7 +45,6 @@ export default function LoginPage() {
           : user.role === "conductor"
           ? "/conductor"
           : "/student";
-
       router.push(redirectPath);
     }
   }, [user, router]);
@@ -58,15 +52,12 @@ export default function LoginPage() {
   const onSubmit = async (data) => {
     try {
       justLoggedIn.current = true;
-
-      // Save email to localStorage for autofill
       if (data.email) {
         localStorage.setItem("savedEmail", data.email);
       }
-
       await login(data.email, data.password);
       toast.custom(() => (
-        <CustomToast type="success" message="Login successful!" />
+        <CustomToast type="success" message="Login successful! Welcome back 👋" />
       ));
     } catch (err) {
       justLoggedIn.current = false;
@@ -76,53 +67,84 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#4B2E2E] to-[#1E1A18] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#2a1a10] via-[#1a100a] to-[#140c08] flex items-center justify-center p-4">
+      {/* Background glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-[#c9a97f]/8 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-amber-900/10 rounded-full blur-[80px]" />
+      </div>
+
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-[#2F1F1C] text-white p-8 rounded-2xl shadow-xl w-full max-w-md"
+        className="relative z-10 bg-[#1e140d]/90 backdrop-blur-xl text-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-[#3d2618]/60"
       >
-        <h2 className="text-3xl font-semibold text-center mb-6 text-[#F3E5D7]">
-          🚌 Login
-        </h2>
+        {/* Header */}
+        <div className="text-center mb-8 space-y-2">
+          <div className="inline-flex p-3 rounded-2xl bg-[#c9a97f]/10 border border-[#c9a97f]/20 mb-2">
+            <Bus size={28} className="text-[#c9a97f]" />
+          </div>
+          <h1 className="text-3xl font-extrabold text-[#F3E5D7]">Welcome Back</h1>
+          <p className="text-sm text-[#8c7464]">Sign in to your Commutex account</p>
+        </div>
 
         {/* Email Field */}
         <div className="mb-4">
-          <label htmlFor="email" className="block mb-2 text-[#F3E5D7]">
-            Email
+          <label
+            htmlFor="email"
+            className="block text-xs font-semibold text-[#c9a97f] mb-1.5 uppercase tracking-wider"
+          >
+            Email Address
           </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            className={`w-full p-3 rounded-lg bg-[#3E2B28] text-white focus:outline-none focus:ring-2 focus:ring-[#A47551] border ${
-              errors.email ? "border-red-500" : "border-transparent"
-            }`}
-            placeholder="Enter your email"
-            {...register("email", {
-              required: "Email is required",
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: "Invalid email address",
-              },
-            })}
-          />
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b5040]">
+              <Mail size={16} />
+            </div>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              className={`w-full pl-10 pr-4 py-3 rounded-2xl bg-[#140c08] text-white placeholder-[#5c4030] focus:outline-none focus:ring-2 focus:ring-[#c9a97f]/50 border transition-all text-sm ${
+                errors.email
+                  ? "border-red-500/60"
+                  : "border-[#3d2618] focus:border-[#c9a97f]/50"
+              }`}
+              placeholder="your@email.com"
+              {...register("email", {
+                required: "Email is required",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Invalid email address",
+                },
+              })}
+            />
+          </div>
           {errors.email && (
-            <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>
+            <p className="text-red-400 text-xs mt-1.5">{errors.email.message}</p>
           )}
         </div>
 
         {/* Password Field */}
         <div className="mb-6">
-          <label htmlFor="password" className="block mb-2 text-[#F3E5D7]">
-            Password
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label
+              htmlFor="password"
+              className="text-xs font-semibold text-[#c9a97f] uppercase tracking-wider"
+            >
+              Password
+            </label>
+          </div>
           <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b5040]">
+              <Lock size={16} />
+            </div>
             <input
               id="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
-              className={`w-full p-3 pr-10 rounded-lg bg-[#3E2B28] text-white focus:outline-none focus:ring-2 focus:ring-[#A47551] border ${
-                errors.password ? "border-red-500" : "border-transparent"
+              className={`w-full pl-10 pr-11 py-3 rounded-2xl bg-[#140c08] text-white placeholder-[#5c4030] focus:outline-none focus:ring-2 focus:ring-[#c9a97f]/50 border transition-all text-sm ${
+                errors.password
+                  ? "border-red-500/60"
+                  : "border-[#3d2618] focus:border-[#c9a97f]/50"
               }`}
               placeholder="Enter your password"
               {...register("password", {
@@ -136,55 +158,43 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#CDB7AE] hover:text-white transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7a6050] hover:text-[#c9a97f] transition-colors"
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
           {errors.password && (
-            <p className="text-red-400 text-sm mt-1">
+            <p className="text-red-400 text-xs mt-1.5">
               {errors.password.message}
             </p>
           )}
         </div>
 
-        {/* Remember Me Checkbox */}
-        {/* <div className="flex items-center mb-4">
-          <input
-            id="remember"
-            type="checkbox"
-            className="w-4 h-4 text-[#A47551] bg-[#3E2B28] border-[#5D4037] rounded focus:ring-[#A47551] focus:ring-2"
-            onChange={(e) => {
-              if (e.target.checked) {
-                const email = watch("email");
-                if (email) {
-                  localStorage.setItem("savedEmail", email);
-                }
-              } else {
-                localStorage.removeItem("savedEmail");
-              }
-            }}
-          />
-          <label htmlFor="remember" className="ml-2 text-sm text-[#CDB7AE]">
-            Remember my email
-          </label>
-        </div> */}
-
         {/* Submit Button */}
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-[#A47551] hover:bg-[#8E6042] disabled:bg-[#5D4037] disabled:cursor-not-allowed text-white py-3 rounded-lg transition-all duration-200 font-medium"
+          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#c9a97f] to-[#b3885c] hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed text-[#140c08] py-3.5 rounded-2xl transition-all duration-200 font-bold text-sm shadow-lg shadow-[#c9a97f]/20 active:scale-95"
         >
-          {isSubmitting ? "Logging in..." : "Login"}
+          {isSubmitting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-[#140c08]/40 border-t-[#140c08] rounded-full animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            <>
+              Sign In
+              <ArrowRight size={16} />
+            </>
+          )}
         </button>
 
         {/* Register Link */}
-        <p className="mt-4 text-center text-sm text-[#CDB7AE]">
-          Don't have an account?{" "}
+        <p className="mt-5 text-center text-xs text-[#8c7464]">
+          Don&apos;t have an account?{" "}
           <Link
             href="/register"
-            className="text-[#F3E5D7] hover:underline transition-colors"
+            className="text-[#c9a97f] hover:text-[#e8cfb5] font-semibold transition-colors"
           >
             Register here
           </Link>

@@ -6,7 +6,22 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import AdminSidebar from "@/components/AdminSidebar";
 import toast from "react-hot-toast";
-import { Eye, EyeOff, Search } from "lucide-react";
+import {
+  GraduationCap,
+  Plus,
+  Edit2,
+  Trash2,
+  Search,
+  Mail,
+  Phone,
+  Bus,
+  BadgeAlert,
+  Lock,
+  Eye,
+  EyeOff,
+  X,
+  AlertCircle,
+} from "lucide-react";
 
 export default function StudentsPage() {
   const { user, loading } = useAuth();
@@ -16,6 +31,9 @@ export default function StudentsPage() {
   const [students, setStudents] = useState([]);
   const [buses, setBuses] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -25,8 +43,6 @@ export default function StudentsPage() {
     phone: "",
     bus: "",
   });
-
-  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     if (!loading) {
@@ -50,7 +66,7 @@ export default function StudentsPage() {
   const fetchStudents = async () => {
     try {
       const res = await api.get("/students");
-      setStudents(res.data);
+      setStudents(res.data || []);
     } catch (err) {
       toast.error("Failed to load students");
     }
@@ -59,7 +75,7 @@ export default function StudentsPage() {
   const fetchBuses = async () => {
     try {
       const res = await api.get("/buses");
-      setBuses(res.data);
+      setBuses(res.data || []);
     } catch (err) {
       toast.error("Failed to load buses");
     }
@@ -67,6 +83,7 @@ export default function StudentsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
       if (editingId) {
         const { name, registerNo, email, phone, bus } = form;
@@ -77,24 +94,26 @@ export default function StudentsPage() {
           phone,
           bus,
         });
-        toast.success("Student updated");
+        toast.success("Passenger details updated");
       } else {
         await api.post("/students", form);
-        toast.success("Student added");
+        toast.success("Passenger registered successfully");
       }
       resetForm();
       fetchStudents();
     } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to submit form");
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Failed to submit form");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (confirm("Are you sure you want to delete this student?")) {
+    if (confirm("Are you sure you want to delete this student record?")) {
       try {
         await api.delete(`/students/${id}`);
         fetchStudents();
-        toast.success("Student deleted");
+        toast.success("Passenger removed");
       } catch (err) {
         toast.error("Delete failed");
       }
@@ -111,6 +130,8 @@ export default function StudentsPage() {
       bus: "",
     });
     setEditingId(null);
+    setShowForm(false);
+    setShowPassword(false);
   };
 
   const handleEdit = (s) => {
@@ -120,158 +141,292 @@ export default function StudentsPage() {
       registerNo: s.registerNo,
       email: s.email,
       password: "",
-      phone: s.phone,
+      phone: s.phone || "",
       bus: s.bus?._id || "",
     });
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (loading || !user || user.role !== "admin") {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        <p>Checking access...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#140c08] text-white">
+        <div className="w-10 h-10 border-4 border-[#c9a97f] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  const filteredStudents = students.filter((s) =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = students.filter(
+    (s) =>
+      s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.registerNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.bus?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-[#1f1b16] text-[#F3E5D7]">
+    <div className="min-h-screen bg-[#140c08] text-[#F3E5D7]">
       <AdminSidebar />
-      <main className="p-4 md:p-8 md:ml-64">
-        <h2 className="text-xl font-bold mb-4">Passengers</h2>
-
-        {/* Student Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="bg-[#2D2421] p-4 rounded-xl mb-6 space-y-3"
-        >
-          <input
-            className="w-full p-2 rounded bg-[#40352F] text-white"
-            placeholder="Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
-          <input
-            className="w-full p-2 rounded bg-[#40352F] text-white"
-            placeholder="Register Number"
-            value={form.registerNo}
-            onChange={(e) => setForm({ ...form, registerNo: e.target.value })}
-            required
-          />
-
-          <input
-            className="w-full p-2 rounded bg-[#40352F] text-white"
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
-          />
-          {!editingId && (
-            <div className="relative">
-              <input
-                className="w-full p-2 pr-10 rounded bg-[#40352F] text-white"
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#CDB7AE] hover:text-white"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          )}
-          <input
-            className="w-full p-2 rounded bg-[#40352F] text-white"
-            placeholder="Phone Number"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            required
-          />
-          <select
-            className="w-full p-2 rounded bg-[#40352F] text-white"
-            value={form.bus}
-            onChange={(e) => setForm({ ...form, bus: e.target.value })}
-            required
+      <main className="pt-20 md:pt-24 pb-16 px-4 md:px-8 md:ml-64 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+              <GraduationCap className="text-[#c9a97f]" />
+              Passenger & Student Roster
+            </h1>
+            <p className="text-xs md:text-sm text-[#8c7464] mt-0.5">
+              Manage student registrations, register numbers, and default bus allocations.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              if (showForm && !editingId) {
+                setShowForm(false);
+              } else {
+                resetForm();
+                setShowForm(true);
+              }
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#b3885c] to-[#c9a97f] hover:from-[#c9a97f] hover:to-[#dfc39e] text-[#140c08] font-bold text-sm shadow-md transition-all active:scale-95"
           >
-            <option value="">Select Bus</option>
-            {buses.map((bus) => (
-              <option key={bus._id} value={bus._id}>
-                {bus.name} ({bus.number})
-              </option>
-            ))}
-          </select>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="bg-[#A9745F] hover:bg-[#8C5F4E] px-4 py-2 rounded text-white"
-            >
-              {editingId ? "Update Student" : "Add Student"}
-            </button>
-            {editingId && (
+            {showForm ? <X size={18} /> : <Plus size={18} />}
+            {showForm ? "Close Form" : "Register Student"}
+          </button>
+        </div>
+
+        {/* Add/Edit Form */}
+        {showForm && (
+          <form
+            onSubmit={handleSubmit}
+            className="bg-[#1e130c]/90 border border-[#3d2618] p-5 md:p-6 rounded-2xl mb-8 shadow-xl backdrop-blur-md animate-fadeIn"
+          >
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#2e1c10]">
+              <h2 className="font-semibold text-lg text-white">
+                {editingId ? "Update Student Profile" : "Register New Student"}
+              </h2>
+              <span className="text-xs text-[#a89078]">
+                {editingId ? "Leave password blank to retain current" : "All fields required"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs font-medium text-[#c9a97f] mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-sm focus:outline-none focus:border-[#c9a97f] transition-colors"
+                  placeholder="e.g. Priya Venkatesh"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#c9a97f] mb-1.5">
+                  Register Number / Roll No
+                </label>
+                <input
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-sm focus:outline-none focus:border-[#c9a97f] transition-colors"
+                  placeholder="e.g. 714021104001"
+                  value={form.registerNo}
+                  onChange={(e) => setForm({ ...form, registerNo: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#c9a97f] mb-1.5">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8c7464]" />
+                  <input
+                    type="email"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-sm focus:outline-none focus:border-[#c9a97f] transition-colors"
+                    placeholder="student@srit.ac.in"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              {!editingId && (
+                <div>
+                  <label className="block text-xs font-medium text-[#c9a97f] mb-1.5">
+                    Account Password
+                  </label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8c7464]" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-sm focus:outline-none focus:border-[#c9a97f] transition-colors"
+                      placeholder="Minimum 6 characters"
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8c7464] hover:text-[#c9a97f] transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-[#c9a97f] mb-1.5">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8c7464]" />
+                  <input
+                    type="tel"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-sm focus:outline-none focus:border-[#c9a97f] transition-colors"
+                    placeholder="e.g. +91 98765 43210"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#c9a97f] mb-1.5">
+                  Assigned Bus
+                </label>
+                <select
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-sm focus:outline-none focus:border-[#c9a97f] transition-colors"
+                  value={form.bus}
+                  onChange={(e) => setForm({ ...form, bus: e.target.value })}
+                  required
+                >
+                  <option value="">Select Bus</option>
+                  {buses.map((bus) => (
+                    <option key={bus._id} value={bus._id}>
+                      {bus.name} ({bus.number})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-5 py-2.5 rounded-xl bg-[#c9a97f] hover:bg-[#b3885c] text-[#140c08] font-bold text-sm transition-colors disabled:opacity-50"
+              >
+                {submitting ? "Saving..." : editingId ? "Update Student" : "Register Student"}
+              </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded text-white"
+                className="px-4 py-2.5 rounded-xl bg-[#2a1a11] hover:bg-[#342217] border border-[#3d2618] text-[#a89078] text-sm transition-colors"
               >
                 Cancel
               </button>
-            )}
-          </div>
-        </form>
+            </div>
+          </form>
+        )}
 
-        {/* 🔍 Search Input (moved below the form) */}
-        <div className="mb-6 relative">
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8c7464]" />
           <input
             type="text"
-            placeholder="Search by name..."
-            className="w-full p-2 pl-10 rounded bg-[#40352F] text-white"
+            placeholder="Search by name, register number, email, or bus..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#CDB7AE]"
-            size={18}
+            className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#1e130c]/70 border border-[#2e1c10] text-sm text-[#F3E5D7] placeholder-[#8c7464] focus:outline-none focus:border-[#c9a97f] transition-colors"
           />
         </div>
 
-        {/* Student List */}
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-          {filteredStudents.map((s) => (
-            <div key={s._id} className="bg-[#2D2421] p-4 rounded-lg space-y-1">
-              <p className="text-lg font-medium">{s.name}</p>
-              <p className="text-sm">🆔 {s.registerNo}</p>
-              <p className="text-sm">📧 {s.email}</p>
-              <p className="text-sm">📞 {s.phone}</p>
-              <p className="text-sm">
-                🚌 {s.bus?.name || "Unassigned"} ({s.bus?.number || "N/A"})
-              </p>
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => handleEdit(s)}
-                  className="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-white text-sm"
+        {/* Student Grid */}
+        {filteredStudents.length === 0 ? (
+          <div className="text-center py-16 px-4 bg-[#1e130c]/40 rounded-2xl border border-[#2e1c10]">
+            <AlertCircle size={40} className="mx-auto text-[#8c7464] mb-3" />
+            <p className="text-base text-[#F3E5D7] font-semibold">No students found</p>
+            <p className="text-xs text-[#8c7464] mt-1">
+              {searchTerm ? "No student matches your query" : "Click 'Register Student' above to add one"}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {filteredStudents.map((s) => {
+              const initials = s.name
+                ? s.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)
+                : "ST";
+
+              return (
+                <div
+                  key={s._id}
+                  className="bg-[#1e130c]/80 border border-[#2e1c10] hover:border-[#c9a97f]/40 p-5 rounded-2xl shadow-lg transition-all duration-200 flex flex-col justify-between"
                 >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(s._id)}
-                  className="bg-red-600 hover:bg-red-500 px-3 py-1 rounded text-white text-sm"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-900/60 to-amber-700/30 border border-amber-500/30 text-amber-300 font-bold flex items-center justify-center text-sm shadow-inner">
+                        {initials}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base font-bold text-white truncate">{s.name}</h3>
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#2a1a11] text-[#c9a97f] border border-[#3d2618]">
+                          {s.registerNo}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs py-3 border-y border-[#2e1c10]/60">
+                      <div className="flex items-center gap-2 text-[#a89078]">
+                        <Mail size={13} className="text-[#8c7464] shrink-0" />
+                        <span className="text-white truncate">{s.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[#a89078]">
+                        <Phone size={13} className="text-[#8c7464] shrink-0" />
+                        <span className="text-white">{s.phone || "Not provided"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[#a89078]">
+                        <Bus size={13} className="text-[#c9a97f] shrink-0" />
+                        <span className="text-[#8c7464]">Assigned:</span>
+                        <span className="text-white font-medium truncate">
+                          {s.bus?.name || "Unassigned"} {s.bus?.number ? `(${s.bus.number})` : ""}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-4 pt-2">
+                    <button
+                      onClick={() => handleEdit(s)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#2a1a11] hover:bg-[#342217] border border-[#3d2618] text-[#c9a97f] hover:text-white text-xs font-medium transition-colors"
+                    >
+                      <Edit2 size={13} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(s._id)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-950/30 hover:bg-red-900/50 border border-red-800/40 text-red-300 text-xs font-medium transition-colors"
+                    >
+                      <Trash2 size={13} />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </main>
     </div>
   );

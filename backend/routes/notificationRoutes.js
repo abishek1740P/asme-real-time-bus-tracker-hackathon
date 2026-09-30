@@ -5,6 +5,7 @@ const role = require("../middleware/roleMiddleware");
 
 const {
   saveFcmToken,
+  deleteFcmToken,
   subscribeToBus,
   unsubscribeFromBus,
   getMySubscriptions,
@@ -13,6 +14,9 @@ const {
 
 // ✅ Save FCM token (students only)
 router.post("/save-token", auth, saveFcmToken);
+
+// ✅ Delete FCM token on logout
+router.delete("/delete-token", auth, deleteFcmToken);
 
 // ✅ Subscribe to a bus (students only)
 router.post("/subscribe", auth, subscribeToBus);

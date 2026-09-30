@@ -14,11 +14,46 @@ export const firebaseApp = initializeApp(firebaseConfig);
 
 // FCM: get token utility
 export async function getFcmToken() {
+  if (typeof window === "undefined") return null;
+
   try {
+    if (!("Notification" in window)) {
+      console.warn("This browser does not support desktop notifications.");
+      return null;
+    }
+
+    // Ask user for permission if not yet decided
+    let permission = Notification.permission;
+    if (permission === "default") {
+      permission = await Notification.requestPermission();
+    }
+
+    if (permission !== "granted") {
+      console.warn("Notification permission was not granted:", permission);
+      return null;
+    }
+
+    // Ensure service worker is registered
+    let swReg = null;
+    if ("serviceWorker" in navigator) {
+      swReg = await navigator.serviceWorker.ready.catch(() => null);
+      if (!swReg) {
+        swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js").catch(() => null);
+      }
+    }
+
     const messaging = getMessaging(firebaseApp);
-    const currentToken = await getToken(messaging, {
-      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY, // must be set
-    });
+    const tokenOptions = {
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+    };
+    if (swReg) {
+      tokenOptions.serviceWorkerRegistration = swReg;
+    }
+
+    const currentToken = await getToken(messaging, tokenOptions);
+    if (currentToken) {
+      localStorage.setItem("fcmToken", currentToken);
+    }
     return currentToken;
   } catch (error) {
     console.error("FCM token error:", error);

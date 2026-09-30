@@ -29,6 +29,22 @@ exports.saveFcmToken = async (req, res) => {
   }
 };
 
+// ✅ Delete FCM token on logout
+exports.deleteFcmToken = async (req, res) => {
+  const { token } = req.body;
+  try {
+    if (token) {
+      await NotificationToken.deleteMany({ token });
+    } else if (req.user) {
+      await NotificationToken.deleteMany({ studentId: req.user.id || req.user._id });
+    }
+    res.status(200).json({ message: "FCM token deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 // ✅ Subscribe student to a bus
 exports.subscribeToBus = async (req, res) => {
   const { busId } = req.body;

@@ -1,367 +1,3 @@
-// frontend/src/app/driver/gps/page.js
-// "use client";
-
-// import { useEffect, useState } from "react";
-// import { useRouter } from "next/navigation";
-// import api from "@/lib/api";
-// import { getSocket } from "@/lib/socket";
-// import { useAuth } from "@/context/AuthContext";
-// import dynamic from "next/dynamic";
-// import LoadingSpinner from "@/components/LoadingSpinner";
-// import toast from "react-hot-toast";
-// import { Bus } from "lucide-react";
-
-// const MapWithNoSSR = dynamic(() => import("@/components/MapView"), {
-//   ssr: false,
-//   loading: () => <LoadingSpinner />,
-// });
-
-// // Constants
-// const arrivalThreshold = 200; // meters
-// const leaveThreshold = 300; // meters
-// const speedMetersPerSecond = (100 * 1000) / 3600; // 100 km/h → m/s
-
-// // Haversine Formula
-// const haversineDistance = (p1, p2) => {
-//   const toRad = (deg) => (deg * Math.PI) / 180;
-//   const R = 6371000;
-//   const dLat = toRad(p2.lat - p1.lat);
-//   const dLng = toRad(p2.lng - p1.lng);
-//   const a =
-//     Math.sin(dLat / 2) ** 2 +
-//     Math.cos(toRad(p1.lat)) * Math.cos(toRad(p2.lat)) * Math.sin(dLng / 2) ** 2;
-//   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-// };
-
-// export default function DriverGPSPage() {
-//   const { user, loading } = useAuth();
-//   const router = useRouter();
-
-//   const [busId, setBusId] = useState(null);
-//   const [coords, setCoords] = useState({ lat: null, lng: null });
-//   const [checkpoints, setCheckpoints] = useState([]);
-//   const [simulate, setSimulate] = useState(false);
-//   const [tokenReady, setTokenReady] = useState(false);
-
-//   useEffect(() => {
-//     const token = localStorage.getItem("token");
-//     if (!token) {
-//       toast.error("Not logged in");
-//       router.push("/login");
-//     } else {
-//       setTokenReady(true);
-//     }
-//   }, []);
-
-//   useEffect(() => {
-//     if (loading || !tokenReady) return;
-
-//     if (!user) {
-//       toast.error("Please log in to access GPS");
-//       router.push("/login");
-//       return;
-//     }
-
-//     if (user.role !== "driver") {
-//       toast.error("Access denied: Drivers only");
-//       router.push(`/${user.role}`);
-//       return;
-//     }
-
-//     const fetchBusAndRoute = async () => {
-//       try {
-//         const token = localStorage.getItem("token");
-//         const res = await api.get("/drivers/me/assigned-bus", {
-//           headers: { Authorization: `Bearer ${token}` },
-//         });
-
-//         const bus = res.data;
-//         setBusId(bus._id);
-
-//         if (bus?.route?._id) {
-//           const routeRes = await api.get(`/routes/${bus.route._id}`, {
-//             headers: { Authorization: `Bearer ${token}` },
-//           });
-
-//           const sanitizedStops = routeRes.data.stops.map((stop) => ({
-//             name: stop.name,
-//             coordinates: {
-//               lat: parseFloat(
-//                 stop.coordinates?.lat?.$numberDouble || stop.coordinates?.lat
-//               ),
-//               lng: parseFloat(
-//                 stop.coordinates?.lng?.$numberDouble || stop.coordinates?.lng
-//               ),
-//             },
-//           }));
-
-//           setCheckpoints(sanitizedStops);
-//         }
-//       } catch {
-//         toast.error("Unable to fetch assigned bus/route");
-//       }
-//     };
-
-//     fetchBusAndRoute();
-//   }, [user, loading, tokenReady, router]);
-
-//   useEffect(() => {
-//     if (!busId || !user?._id) return;
-
-//     const socket = getSocket();
-//     let currentCheckpointIndex = -1;
-//     let hasArrived = false;
-//     let lastArrivedStop = null; // ✅ Add this line
-
-//     const findNearestStop = (point) => {
-//       let nearestStop = null;
-//       let nearestIndex = -1;
-//       let minDistance = Infinity;
-
-//       checkpoints.forEach((stop, i) => {
-//         const dist = haversineDistance(point, stop.coordinates);
-//         if (dist < minDistance) {
-//           minDistance = dist;
-//           nearestStop = stop;
-//           nearestIndex = i;
-//         }
-//       });
-
-//       return { stop: nearestStop, index: nearestIndex, distance: minDistance };
-//     };
-
-//     const sendNotification = async (title, body) => {
-//       try {
-//         await api.post("/notifications/send", {
-//           title,
-//           body,
-//           busId, // ✅ make sure this is present and correct
-//         });
-//       } catch (err) {
-//         console.error("❌ Notification error", {
-//           status: err?.response?.status,
-//           message: err?.response?.data || err.message,
-//           stack: err.stack,
-//         });
-//       }
-//     };
-
-//     if (simulate) {
-//       const path = [
-//         { lat: 10.941926, lng: 76.901515 }, // SRIT
-
-//         // Between SRIT → Pachapalayam Pirivu
-//         { lat: 10.951, lng: 76.90151 },
-//         { lat: 10.96, lng: 76.901512 },
-//         { lat: 10.967865, lng: 76.901513 }, // Pachapalayam Pirivu
-
-//         // Pachapalayam Pirivu → Perur
-//         { lat: 10.9705, lng: 76.908 },
-//         { lat: 10.973, lng: 76.9115 },
-//         { lat: 10.975635, lng: 76.915238 }, // Perur
-
-//         // Perur → Selvapuram
-//         { lat: 10.98, lng: 76.92 },
-//         { lat: 10.985, lng: 76.928 },
-//         { lat: 10.987584, lng: 76.934437 }, // Selvapuram
-
-//         // Selvapuram → Town Hall
-//         { lat: 10.99, lng: 76.94 },
-//         { lat: 10.9915, lng: 76.948 },
-//         { lat: 10.992788, lng: 76.953317 }, // Town Hall
-
-//         // Town Hall → Gandhipuram
-//         { lat: 11.0, lng: 76.96 },
-//         { lat: 11.008, lng: 76.965 },
-//         { lat: 11.013734, lng: 76.967581 }, // Gandhipuram Bus Stop
-
-//         // Gandhipuram → Ganapathy
-//         { lat: 11.025, lng: 76.972 },
-//         { lat: 11.03, lng: 76.975 },
-//         { lat: 11.034996, lng: 76.978275 }, // Ganapathy
-
-//         // Ganapathy → Kovilpalayam
-//         { lat: 11.05, lng: 76.985 },
-//         { lat: 11.09, lng: 77.01 },
-//         { lat: 11.12, lng: 77.025 },
-//         { lat: 11.137203, lng: 77.035867 }, // Kovilpalayam
-
-//       ];
-
-//       let index = 0;
-
-//       const moveToNextPoint = async () => {
-//         if (index >= path.length) {
-//           // Final check after delay
-//           setTimeout(async () => {
-//             if (lastArrivedStop && coords.lat && coords.lng) {
-//               const finalDistance = haversineDistance(
-//                 coords,
-//                 lastArrivedStop.coordinates
-//               );
-//               if (finalDistance > leaveThreshold) {
-//                 await api.post("/notifications/send", {
-//                   title: "🚍 Bus Left",
-//                   body: `Bus has departed from ${lastArrivedStop.name}`,
-//                   busId, // ✅ FIXED — lowercase
-//                 });
-//                 toast.success("Departure notification sent");
-//               }
-//             }
-
-//             toast.success("Simulation complete");
-//           }, 4000); // 4s delay for realism
-
-//           return;
-//         }
-
-//         const point = path[index];
-//         const next = path[index + 1];
-//         setCoords(point);
-//         if (socket?.connected) socket.emit("busLocation", point);
-
-//         const { stop, index: stopIndex, distance } = findNearestStop(point);
-
-//         if (
-//           distance <= arrivalThreshold &&
-//           stopIndex !== currentCheckpointIndex
-//         ) {
-//           currentCheckpointIndex = stopIndex;
-//           hasArrived = true;
-//           lastArrivedStop = stop;
-//           await sendNotification(
-//             "📍 Bus Arrived",
-//             `Bus has reached ${stop.name}`
-//           );
-//         }
-
-//         if (hasArrived && distance > leaveThreshold) {
-//           hasArrived = false;
-
-//           if (lastArrivedStop) {
-//             await api.post("/notifications/send", {
-//               title: "📍 Bus Arrived",
-//               body: `Bus has reached ${stop.name}`,
-//               busId, // ✅ include busId here too
-//             });
-//           }
-
-//           lastArrivedStop = null;
-//         }
-
-//         if (!next) return;
-//         const delay =
-//           (haversineDistance(point, next) / speedMetersPerSecond) * 10;
-//         index++;
-//         setTimeout(moveToNextPoint, delay);
-//       };
-
-//       moveToNextPoint();
-//       return () => {
-//         index = path.length;
-//       }; // Cancel on unmount
-//     } else {
-//       if (!navigator.geolocation) {
-//         toast.error("Geolocation not supported");
-//         return;
-//       }
-
-//       const watchId = navigator.geolocation.watchPosition(
-//         async (position) => {
-//           const point = {
-//             lat: position.coords.latitude,
-//             lng: position.coords.longitude,
-//           };
-//           setCoords(point);
-//           if (socket?.connected) socket.emit("busLocation", point);
-
-//           const { stop, index: stopIndex, distance } = findNearestStop(point);
-
-//           if (
-//             distance <= arrivalThreshold &&
-//             stopIndex !== currentCheckpointIndex
-//           ) {
-//             currentCheckpointIndex = stopIndex;
-//             hasArrived = true;
-//             await sendNotification(
-//               "📍 Bus Arrived",
-//               `Bus has reached ${stop.name}`
-//             );
-//           }
-
-//           if (hasArrived && distance > leaveThreshold) {
-//             hasArrived = false;
-//             await sendNotification(
-//               "🚍 Bus Left",
-//               `Bus has departed from ${stop.name}`
-//             );
-//           }
-//         },
-//         (error) => toast.error(`GPS Error: ${error.message}`),
-//         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-//       );
-
-//       return () => navigator.geolocation.clearWatch(watchId);
-//     }
-//   }, [busId, user, simulate, checkpoints]);
-
-//   if (loading || !user || user.role !== "driver") {
-//     return (
-//       <div className="min-h-screen flex items-center justify-center bg-[#1A0E0E] text-white">
-//         <p>Checking access...</p>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="bg-[#1A0E0E] text-[#F3E5D7] min-h-screen p-6 flex flex-col items-center">
-//       <h1 className="text-2xl font-bold mb-2">
-//         {simulate ? "🧪 Simulating GPS..." : "📡 Sending GPS..."}
-//       </h1>
-//       <p className="text-[#EBDACF] mb-4">
-//         {simulate
-//           ? "Simulated location is updating every 2s."
-//           : "Your real location is updating live."}
-//       </p>
-
-//       {!simulate && (
-//         <button
-//           onClick={() => setSimulate(true)}
-//           className="mb-6 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded"
-//         >
-//           Start Simulation
-//         </button>
-//       )}
-
-//       {coords.lat && coords.lng ? (
-//         <>
-//           <div className="bg-[#382b24] p-4 rounded-xl shadow-lg mb-6">
-//             <p className="text-lg font-semibold">
-//               Latitude:{" "}
-//               <span className="text-green-400">{coords.lat.toFixed(6)}</span>
-//             </p>
-//             <p className="text-lg font-semibold">
-//               Longitude:{" "}
-//               <span className="text-green-400">{coords.lng.toFixed(6)}</span>
-//             </p>
-//           </div>
-
-//           <div className="w-full max-w-3xl h-[400px] rounded-lg overflow-hidden border border-[#503838]">
-//             <MapWithNoSSR
-//               lat={coords.lat}
-//               lng={coords.lng}
-//               isConnected={true}
-//               checkpoints={checkpoints}
-//             />
-//           </div>
-//         </>
-//       ) : (
-//         <p className="text-[#EBDACF]">Waiting for GPS signal...</p>
-//       )}
-//     </div>
-//   );
-// }
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -372,13 +8,23 @@ import api from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 import { useAuth } from "@/context/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import {
+  Radio,
+  Navigation,
+  Play,
+  CheckCircle,
+  MapPin,
+  Compass,
+  Activity,
+  Layers,
+  Sparkles,
+} from "lucide-react";
 
 const MapWithNoSSR = dynamic(() => import("@/components/MapView"), {
   ssr: false,
   loading: () => <LoadingSpinner />,
 });
 
-// Constants
 const arrivalThreshold = 200; // meters
 const leaveThreshold = 300; // meters
 const speedMetersPerSecond = (100 * 1000) / 3600; // 100 km/h in m/s
@@ -399,6 +45,7 @@ export default function DriverGPSPage() {
   const router = useRouter();
 
   const [busId, setBusId] = useState(null);
+  const [busName, setBusName] = useState("");
   const [coords, setCoords] = useState({ lat: null, lng: null });
   const [checkpoints, setCheckpoints] = useState([]);
   const [simulate, setSimulate] = useState(false);
@@ -412,7 +59,7 @@ export default function DriverGPSPage() {
     } else {
       setTokenReady(true);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (loading || !tokenReady) return;
@@ -438,13 +85,14 @@ export default function DriverGPSPage() {
 
         const bus = res.data;
         setBusId(bus._id);
+        setBusName(bus.name || "Assigned Bus");
 
         if (bus?.route?._id) {
           const routeRes = await api.get(`/routes/${bus.route._id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          const sanitizedStops = routeRes.data.stops.map((stop) => ({
+          const sanitizedStops = (routeRes.data.stops || []).map((stop) => ({
             name: stop.name,
             coordinates: {
               lat: parseFloat(
@@ -473,6 +121,8 @@ export default function DriverGPSPage() {
     let currentCheckpointIndex = -1;
     let hasArrived = false;
     let lastArrivedStop = null;
+    let latestCoords = null;
+    let timerId = null;
 
     const findNearestStop = (point) => {
       let nearestStop = null;
@@ -491,44 +141,36 @@ export default function DriverGPSPage() {
       return { stop: nearestStop, index: nearestIndex, distance: minDistance };
     };
 
-    let notificationQueue = Promise.resolve(); // Queue for sequential sending
+    let notificationQueue = Promise.resolve();
 
     const sendNotification = (title, body) => {
-      // Append to queue
       notificationQueue = notificationQueue.then(() =>
         api
           .post("/notifications/send", { title, body, busId })
           .catch((err) => console.error("Notification error:", err))
       );
-      return notificationQueue; // return the promise for await if needed
+      return notificationQueue;
     };
 
     if (simulate) {
       const path = [
         { lat: 11.204751, lng: 76.894641 }, // Selvapuram
-        // Selvapuram → Ukkadam
         { lat: 11.15, lng: 76.91 },
         { lat: 11.12, lng: 76.925 },
         { lat: 11.08, lng: 76.945 },
         { lat: 10.98876, lng: 76.959711 }, // Ukkadam
-        // Ukkadam → Ukkadam Bypass
         { lat: 10.9885, lng: 76.961 },
         { lat: 10.988149, lng: 76.963971 }, // Ukkadam Bypass
-        // Ukkadam Bypass → Sungam
         { lat: 10.991, lng: 76.97 },
         { lat: 10.994, lng: 76.976 },
         { lat: 10.997668, lng: 76.984999 }, // Sungam
-        // Sungam → Singanallur
         { lat: 10.998, lng: 76.99 },
         { lat: 10.99923, lng: 77.02328 }, // Singanallur
-        // Singanallur → Ondipudhur
         { lat: 11.0, lng: 77.035 },
         { lat: 11.002873, lng: 77.062279 }, // Ondipudhur
-        // Ondipudhur → Sulur
         { lat: 11.01, lng: 77.08 },
         { lat: 11.02, lng: 77.105 },
         { lat: 11.025493, lng: 77.124774 }, // Sulur
-        // Sulur → SRIT
         { lat: 11.018, lng: 77.14 },
         { lat: 11.01, lng: 77.155 },
         { lat: 10.99, lng: 77.175 },
@@ -541,10 +183,10 @@ export default function DriverGPSPage() {
 
       const moveToNextPoint = async () => {
         if (index >= path.length) {
-          setTimeout(async () => {
-            if (lastArrivedStop && coords.lat && coords.lng) {
+          timerId = setTimeout(async () => {
+            if (lastArrivedStop && latestCoords?.lat && latestCoords?.lng) {
               const finalDistance = haversineDistance(
-                coords,
+                latestCoords,
                 lastArrivedStop.coordinates
               );
               if (finalDistance > leaveThreshold) {
@@ -554,14 +196,14 @@ export default function DriverGPSPage() {
                 );
               }
             }
-
-            toast.success("Simulation complete");
+            toast.success("GPS simulation completed");
           }, 4000);
           return;
         }
 
         const point = path[index];
         const next = path[index + 1];
+        latestCoords = point;
         setCoords(point);
         if (socket?.connected) socket.emit("busLocation", point);
 
@@ -595,16 +237,17 @@ export default function DriverGPSPage() {
         const delay =
           (haversineDistance(point, next) / speedMetersPerSecond) * 10;
         index++;
-        setTimeout(moveToNextPoint, delay);
+        timerId = setTimeout(moveToNextPoint, delay);
       };
 
       moveToNextPoint();
       return () => {
+        if (timerId) clearTimeout(timerId);
         index = path.length;
       };
     } else {
       if (!navigator.geolocation) {
-        toast.error("Geolocation not supported");
+        toast.error("Geolocation not supported by this browser");
         return;
       }
 
@@ -614,6 +257,7 @@ export default function DriverGPSPage() {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
+          latestCoords = point;
           setCoords(point);
           if (socket?.connected) socket.emit("busLocation", point);
 
@@ -645,99 +289,125 @@ export default function DriverGPSPage() {
 
       return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, [busId, user, simulate, checkpoints]);
+  }, [busId, user?._id, simulate, checkpoints]);
 
   if (loading || !user || user.role !== "driver") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#1A0E0E] text-white">
-        <p>Checking access...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#140c08] text-white">
+        <div className="w-10 h-10 border-4 border-[#c9a97f] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="bg-[#1A0E0E] text-[#F3E5D7] min-h-screen p-6 flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-2">
-        {simulate ? "🧪 Simulating GPS..." : "📡 Sending GPS..."}
-      </h1>
-      <p className="text-[#EBDACF] mb-4">
-        {simulate
-          ? "Simulated location is updating."
-          : "Your real location is updating live."}
-      </p>
+    <div className="min-h-screen bg-[#140c08] text-[#F3E5D7] pt-20 md:pt-24 pb-16 px-4 md:px-8 max-w-5xl mx-auto flex flex-col items-center">
+      {/* Header Banner */}
+      <div className="w-full text-center mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+          <Radio size={14} className="animate-pulse" />
+          {simulate ? "Simulation Mode Active" : "Live Hardware Telemetry"}
+        </div>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white">
+          GPS Beacon Transmission
+        </h1>
+        <p className="text-xs md:text-sm text-[#8c7464] mt-1">
+          {simulate
+            ? "Broadcasting synthetic waypoint coordinates across Coimbatore transit route."
+            : "Transmitting your real device GPS coordinates to live passenger tracking apps."}
+        </p>
+      </div>
 
-      {!simulate && (
-        <button
-          onClick={() => setSimulate(true)}
-          className="mb-6 bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Start Simulation
-        </button>
-      )}
+      {/* Control Strip */}
+      <div className="w-full bg-[#1e130c]/90 border border-[#3d2618] rounded-2xl p-4 md:p-5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[#c9a97f]">
+            <Navigation size={20} />
+          </div>
+          <div>
+            <span className="text-xs text-[#8c7464] block">Broadcasting For</span>
+            <span className="text-white font-bold text-sm">{busName}</span>
+          </div>
+        </div>
 
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {!simulate ? (
+            <button
+              onClick={() => {
+                setSimulate(true);
+                toast.success("Simulation route started");
+              }}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#b3885c] to-[#c9a97f] hover:from-[#c9a97f] hover:to-[#dfc39e] text-[#140c08] font-bold text-xs shadow-md transition-all active:scale-95"
+            >
+              <Sparkles size={14} />
+              Simulate Transit Route
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setSimulate(false);
+                toast("Switched back to device GPS");
+              }}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#2a1a11] hover:bg-[#342217] border border-[#3d2618] text-[#c9a97f] text-xs font-semibold transition-colors"
+            >
+              <Radio size={14} />
+              Use Live Device GPS
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Telemetry Coordinates Badges */}
       {coords.lat && coords.lng ? (
-        <>
-          <div className="bg-[#382b24] p-4 rounded-xl shadow-lg mb-6">
-            <p className="text-lg font-semibold">
-              Latitude:{" "}
-              <span className="text-green-400">{coords.lat.toFixed(6)}</span>
-            </p>
-            <p className="text-lg font-semibold">
-              Longitude:{" "}
-              <span className="text-green-400">{coords.lng.toFixed(6)}</span>
-            </p>
+        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="p-3.5 rounded-xl bg-[#1e130c] border border-[#2e1c10] text-center">
+            <span className="text-[11px] text-[#8c7464] block">Latitude</span>
+            <span className="font-mono text-emerald-400 font-bold text-xs md:text-sm">
+              {coords.lat.toFixed(6)}
+            </span>
           </div>
-
-          <div className="w-full max-w-3xl h-[400px] rounded-lg overflow-hidden border border-[#503838]">
-            <MapWithNoSSR
-              lat={coords.lat}
-              lng={coords.lng}
-              isConnected={true}
-              checkpoints={checkpoints}
-            />
+          <div className="p-3.5 rounded-xl bg-[#1e130c] border border-[#2e1c10] text-center">
+            <span className="text-[11px] text-[#8c7464] block">Longitude</span>
+            <span className="font-mono text-emerald-400 font-bold text-xs md:text-sm">
+              {coords.lng.toFixed(6)}
+            </span>
           </div>
-        </>
+          <div className="p-3.5 rounded-xl bg-[#1e130c] border border-[#2e1c10] text-center">
+            <span className="text-[11px] text-[#8c7464] block">Waypoints</span>
+            <span className="text-white font-bold text-xs md:text-sm">
+              {checkpoints.length} stops
+            </span>
+          </div>
+          <div className="p-3.5 rounded-xl bg-[#1e130c] border border-[#2e1c10] text-center">
+            <span className="text-[11px] text-[#8c7464] block">Socket Relay</span>
+            <span className="text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              Connected
+            </span>
+          </div>
+        </div>
       ) : (
-        <p className="text-[#EBDACF]">Waiting for GPS signal...</p>
+        <div className="w-full p-4 mb-6 rounded-2xl bg-[#1e130c]/60 border border-[#2e1c10] flex items-center justify-center gap-2 text-xs text-[#a89078]">
+          <div className="w-4 h-4 border-2 border-[#c9a97f] border-t-transparent rounded-full animate-spin" />
+          <span>Locking GPS satellite fix... please grant location permissions if prompted.</span>
+        </div>
       )}
+
+      {/* Map View Container */}
+      <div className="w-full h-[450px] md:h-[520px] rounded-3xl overflow-hidden border border-[#3d2618] shadow-2xl bg-[#1e130c]">
+        {coords.lat && coords.lng ? (
+          <MapWithNoSSR
+            lat={coords.lat}
+            lng={coords.lng}
+            isConnected={true}
+            checkpoints={checkpoints}
+          />
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center text-[#8c7464] gap-2">
+            <Compass size={36} className="text-[#5a4232] animate-pulse" />
+            <p className="text-xs">Waiting for GPS coordinates fix...</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-// { lat: 11.204751, lng: 76.894641 }, // Selvapuram
-
-// // Selvapuram → Ukkadam
-// { lat: 11.15, lng: 76.91 },
-// { lat: 11.12, lng: 76.925 },
-// { lat: 11.08, lng: 76.945 },
-// { lat: 10.98876, lng: 76.959711 }, // Ukkadam
-
-// // Ukkadam → Ukkadam Bypass
-// { lat: 10.9885, lng: 76.961 },
-// { lat: 10.988149, lng: 76.963971 }, // Ukkadam Bypass
-
-// // Ukkadam Bypass → Sungam
-// { lat: 10.991, lng: 76.97 },
-// { lat: 10.994, lng: 76.976 },
-// { lat: 10.997668, lng: 76.984999 }, // Sungam
-
-// // Sungam → Singanallur
-// { lat: 10.998, lng: 76.99 },
-// { lat: 10.99923, lng: 77.02328 }, // Singanallur
-
-// // Singanallur → Ondipudhur
-// { lat: 11.0, lng: 77.035 },
-// { lat: 11.002873, lng: 77.062279 }, // Ondipudhur
-
-// // Ondipudhur → Sulur
-// { lat: 11.01, lng: 77.08 },
-// { lat: 11.02, lng: 77.105 },
-// { lat: 11.025493, lng: 77.124774 }, // Sulur
-
-// // Sulur → SRIT
-// { lat: 11.018, lng: 77.14 },
-// { lat: 11.01, lng: 77.155 },
-// { lat: 10.99, lng: 77.175 },
-// { lat: 10.97, lng: 77.18 },
-// { lat: 10.95, lng: 77.17 },
-// { lat: 10.941926, lng: 76.901515 }, // SRIT

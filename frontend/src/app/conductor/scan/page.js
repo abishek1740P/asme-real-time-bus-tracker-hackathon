@@ -3,6 +3,21 @@
 import { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import api from "@/lib/api";
+import {
+  QrCode,
+  Camera,
+  Play,
+  Square,
+  Upload,
+  Bus,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  RotateCcw,
+  IndianRupee,
+  MapPin,
+  Users,
+} from "lucide-react";
 
 export default function ScanTicketPage() {
   const [scanResult, setScanResult] = useState(null);
@@ -16,18 +31,16 @@ export default function ScanTicketPage() {
 
   const scannerRef = useRef(null);
 
-  // Get conductor's bus info on component mount
   useEffect(() => {
     const fetchConductorBus = async () => {
       try {
         const res = await api.get("/buses/conductor/my-bus");
         setConductorBus(res.data.bus);
       } catch (err) {
-        console.error("Failed to fetch conductor bus:", err);
         if (err.response?.status === 404) {
-          setError("No bus assigned to you. Please contact admin.");
+          setError("No bus assigned to you. Please contact your administrator.");
         } else {
-          setError("Failed to load conductor information");
+          setError("Failed to load conductor bus profile");
         }
       }
     };
@@ -35,49 +48,42 @@ export default function ScanTicketPage() {
     fetchConductorBus();
   }, []);
 
-  // Detect cameras
   useEffect(() => {
     Html5Qrcode.getCameras()
       .then((cams) => {
-        setDevices(cams);
-        if (cams.length > 0) setSelectedDeviceId(cams[0].id);
+        setDevices(cams || []);
+        if (cams && cams.length > 0) setSelectedDeviceId(cams[0].id);
       })
-      .catch(() => setError("❌ No cameras found"));
+      .catch(() => setError("No camera hardware detected"));
   }, []);
 
-  // Start scanning
   const startScan = async () => {
     if (!selectedDeviceId) return;
     setError("");
     setScanResult(null);
 
     try {
-      scannerRef.current = new Html5Qrcode("reader", { verbose: true });
+      scannerRef.current = new Html5Qrcode("reader", { verbose: false });
 
       await scannerRef.current.start(
         { deviceId: { exact: selectedDeviceId } },
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 },
+          qrbox: { width: 240, height: 240 },
           disableFlip: false,
         },
         async (decodedText) => {
-          console.log("QR decoded:", decodedText);
           await handleScan(decodedText);
         },
-        (err) => {
-          console.log("Decode error:", err);
-        }
+        () => {}
       );
 
       setScanActive(true);
     } catch (err) {
-      console.error("Start scan error:", err);
-      setError("❌ Failed to start camera. Make sure permission is granted.");
+      setError("Failed to access camera. Please allow camera permissions.");
     }
   };
 
-  // Stop scanning
   const stopScan = async () => {
     if (scannerRef.current) {
       try {
@@ -89,7 +95,6 @@ export default function ScanTicketPage() {
     setScanActive(false);
   };
 
-  // Handle scanned QR
   const handleScan = async (data) => {
     if (!data) return;
     setLoading(true);
@@ -97,29 +102,25 @@ export default function ScanTicketPage() {
 
     try {
       await stopScan();
-
       const res = await api.post(`/tickets/scan/${data}`);
       setScanResult(res.data.ticket);
       setShowDetails(true);
     } catch (err) {
-      console.error("API error:", err);
       setScanResult(null);
-
       if (err.response?.status === 404) {
-        setError("❌ Ticket not found");
+        setError("Invalid boarding ticket (Not found)");
       } else if (err.response?.status === 403) {
-        setError("This ticket is for a different bus!");
+        setError("Unauthorized ticket — belongs to another bus!");
       } else if (err.response?.status === 400) {
-        setError("" + (err.response.data.message || "Ticket already used"));
+        setError(err.response.data.message || "Ticket already redeemed");
       } else {
-        setError(err.response?.data?.message || "❌ Failed to verify ticket");
+        setError(err.response?.data?.message || "Failed to verify ticket");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle QR image upload
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -131,94 +132,91 @@ export default function ScanTicketPage() {
       const result = await html5QrCode.scanFile(file, true);
       await handleScan(result);
     } catch (err) {
-      console.error("File scan error:", err);
-      setError(
-        "❌ Could not read QR from image. Make sure it's clear and upright."
-      );
+      setError("Could not read QR code from image. Please ensure good lighting.");
     }
   };
 
   return (
-    <div className="p-6 flex flex-col items-center min-h-screen bg-gradient-to-b from-[#F3E5D7]/20 to-[#3E2F2C]/20">
-      <h1 className="text-3xl font-extrabold mb-6 text-[#ccc1be] drop-shadow-lg">
-        🎫 Scan Passenger Ticket
-      </h1>
+    <div className="max-w-xl mx-auto flex flex-col items-center">
+      {/* Header */}
+      <div className="text-center mb-6">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white flex items-center justify-center gap-2">
+          <QrCode className="text-[#c9a97f]" />
+          Passenger QR Scanner
+        </h1>
+        <p className="text-xs text-[#8c7464] mt-1">
+          Aim camera at passenger ticket barcode or upload a digital pass snapshot.
+        </p>
+      </div>
 
-      {/* Conductor Bus Info */}
+      {/* Conductor Bus Info Banner */}
       {conductorBus && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl text-white text-center shadow-lg border border-white/20 w-full max-w-md">
-          <div className="flex items-center justify-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-xl">🚌</span>
+        <div className="mb-5 p-4 bg-[#1e130c]/90 border border-[#3d2618] rounded-2xl w-full shadow-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[#c9a97f]">
+              <Bus size={20} />
             </div>
             <div>
-              <p className="font-bold text-lg">{conductorBus.name}</p>
-              <p className="text-sm opacity-90">
-                Bus No: {conductorBus.number}
+              <p className="font-bold text-sm text-white">{conductorBus.name}</p>
+              <p className="text-xs text-[#8c7464]">
+                Vehicle No: <span className="text-[#c9a97f] font-mono">{conductorBus.number}</span>
               </p>
             </div>
           </div>
-          <p className="text-xs mt-2 opacity-80">
-            You can only validate tickets for this bus
-          </p>
+          <span className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+            Active Bus
+          </span>
         </div>
       )}
 
-      {!conductorBus && !error && (
-        <div className="mb-6 p-4 bg-yellow-500 rounded-2xl text-white text-center shadow-lg w-full max-w-md">
-          <p className="flex items-center justify-center space-x-2">
-            <span className="animate-spin">⏳</span>
-            <span>Loading bus information...</span>
-          </p>
-        </div>
-      )}
-
-      <div className="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-md flex flex-col items-center border border-gray-200">
-        {/* Camera selector */}
+      {/* Main Scanner Container */}
+      <div className="bg-[#1e130c]/80 border border-[#2e1c10] p-5 md:p-6 rounded-3xl shadow-2xl w-full flex flex-col items-center">
+        {/* Camera Selector */}
         {devices.length > 1 && (
-          <select
-            value={selectedDeviceId || ""}
-            onChange={(e) => setSelectedDeviceId(e.target.value)}
-            className="mb-4 p-3 rounded-xl bg-gray-50 text-gray-800 w-full shadow-inner border border-gray-200 hover:border-blue-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-          >
-            {devices.map((device, i) => (
-              <option key={device.id} value={device.id}>
-                {device.label || `Camera ${i + 1}`}
-              </option>
-            ))}
-          </select>
+          <div className="w-full mb-4">
+            <label className="text-xs text-[#8c7464] block mb-1">Select Camera</label>
+            <select
+              value={selectedDeviceId || ""}
+              onChange={(e) => setSelectedDeviceId(e.target.value)}
+              className="p-2.5 rounded-xl bg-[#140c08] text-white text-xs w-full border border-[#3d2618] focus:outline-none focus:border-[#c9a97f]"
+            >
+              {devices.map((device, i) => (
+                <option key={device.id} value={device.id}>
+                  {device.label || `Camera ${i + 1}`}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
 
         {/* Control Buttons */}
-        <div className="flex gap-3 mb-4 w-full">
+        <div className="flex gap-2.5 mb-4 w-full">
           {!scanActive ? (
             <button
               onClick={startScan}
               disabled={!conductorBus}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl shadow-lg hover:from-green-600 hover:to-emerald-700 hover:scale-105 transition-all duration-200 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed disabled:scale-100 font-semibold flex items-center justify-center space-x-2"
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-[#b3885c] to-[#c9a97f] hover:from-[#c9a97f] hover:to-[#dfc39e] text-[#140c08] rounded-xl shadow-lg font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
             >
-              <span>▶</span>
-              <span>{conductorBus ? "Start Scan" : "Loading..."}</span>
+              <Play size={16} />
+              <span>{conductorBus ? "Start Camera Scanner" : "Loading Vehicle..."}</span>
             </button>
           ) : (
             <button
               onClick={stopScan}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-xl shadow-lg hover:from-red-600 hover:to-pink-700 hover:scale-105 transition-all duration-200 font-semibold flex items-center justify-center space-x-2"
+              className="flex-1 py-3 px-4 bg-red-600/90 hover:bg-red-600 text-white rounded-xl shadow-lg font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
             >
-              <span>⏹</span>
-              <span>Stop Scan</span>
+              <Square size={16} />
+              <span>Stop Scanner</span>
             </button>
           )}
         </div>
 
-        {/* Upload QR Image */}
+        {/* Upload QR File */}
         <div className="mb-4 w-full">
-          <label className="block w-full text-center text-gray-700 cursor-pointer bg-gradient-to-r from-purple-50 to-blue-50 p-3 rounded-xl shadow-inner border-2 border-dashed border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 group">
-            <div className="flex items-center justify-center space-x-2">
-              <span className="text-lg group-hover:scale-110 transition-transform">
-                📁
-              </span>
-              <span className="font-medium">Upload QR Image</span>
+          <label className="block w-full text-center cursor-pointer bg-[#140c08] p-3 rounded-xl border border-dashed border-[#3d2618] hover:border-[#c9a97f] transition-all group">
+            <div className="flex items-center justify-center gap-2 text-xs text-[#a89078] group-hover:text-white">
+              <Upload size={14} className="text-[#c9a97f]" />
+              <span>Upload Ticket Image / QR Screenshot</span>
             </div>
             <input
               type="file"
@@ -229,145 +227,93 @@ export default function ScanTicketPage() {
           </label>
         </div>
 
-        {/* Camera Preview */}
-        <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-gray-900 border-4 border-white shadow-2xl">
-          <div id="reader" className="w-full h-full"></div>
+        {/* Camera Viewfinder */}
+        <div className="relative w-full h-72 md:h-80 rounded-2xl overflow-hidden bg-[#0d0705] border-2 border-[#3d2618] shadow-inner">
+          <div id="reader" className="w-full h-full" />
           {scanActive && (
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent animate-scan-line shadow-lg"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#c9a97f] to-transparent animate-scan-line shadow-[0_0_12px_#c9a97f]" />
           )}
           {!scanActive && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <p className="text-white text-lg font-semibold">
-                Camera Inactive
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 gap-2 p-4 text-center">
+              <Camera size={32} className="text-[#5a4232]" />
+              <p className="text-white text-xs font-semibold">Camera is Idle</p>
+              <p className="text-[11px] text-[#8c7464]">
+                Tap "Start Camera Scanner" above to initiate verification
               </p>
             </div>
           )}
         </div>
 
-        {/* Loading State */}
+        {/* Verification Loading State */}
         {loading && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-2xl w-full text-center border border-blue-200">
-            <div className="flex items-center justify-center space-x-3">
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-blue-700 font-medium">Verifying ticket...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Ticket Details - Cute & Sleek Design */}
-        {scanResult && showDetails && (
-          <div className="mt-4 w-full">
-            <div className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-3xl shadow-2xl border-2 border-white/30 overflow-hidden animate-fadeIn">
-              {/* Header */}
-              <div className="bg-white/20 p-4 text-center border-b border-white/20">
-                <div className="flex items-center justify-center space-x-3">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                    <span className="text-2xl">✅</span>
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white drop-shadow-md">
-                      Valid Ticket
-                    </h3>
-                    <p className="text-white/80 text-sm">
-                      Successfully verified
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-5">
-                {/* Passenger Info */}
-                <div className="text-center mb-6">
-                  <p className="text-white/80 text-sm mb-1">Passenger</p>
-                  <p className="text-white font-bold text-xl">
-                    {scanResult.student?.name}
-                  </p>
-                </div>
-
-                {/* Details Grid */}
-                <div className="grid grid-cols-2 gap-3 mb-6">
-                  <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm">
-                    <p className="text-white/70 text-xs mb-1">Bus</p>
-                    <p className="text-white font-semibold">
-                      {scanResult.bus?.number}
-                    </p>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm">
-                    <p className="text-white/70 text-xs mb-1">Seats</p>
-                    <p className="text-white font-semibold">
-                      {scanResult.seats}
-                    </p>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm">
-                    <p className="text-white/70 text-xs mb-1">Fare</p>
-                    <p className="text-white font-semibold">
-                      ₹{scanResult.fare}
-                    </p>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm">
-                    <p className="text-white/70 text-xs mb-1">Status</p>
-                    <p
-                      className={`font-semibold text-sm ${
-                        scanResult.used ? "text-red-200" : "text-green-200"
-                      }`}
-                    >
-                      {scanResult.used ? "Used" : "Active"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Route */}
-                <div className="bg-white/10 rounded-xl p-4 mb-6 backdrop-blur-sm">
-                  <p className="text-white/70 text-xs text-center mb-3">
-                    Route
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="text-center flex-1">
-                      <p className="text-white font-bold text-sm">
-                        {scanResult.startPoint}
-                      </p>
-                      <p className="text-white/60 text-xs">From</p>
-                    </div>
-                    <div className="mx-2">
-                      <span className="text-white/60 text-xl">→</span>
-                    </div>
-                    <div className="text-center flex-1">
-                      <p className="text-white font-bold text-sm">
-                        {scanResult.stopPoint}
-                      </p>
-                      <p className="text-white/60 text-xs">To</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Button */}
-                <button
-                  onClick={() => {
-                    setShowDetails(false);
-                    setScanResult(null);
-                  }}
-                  className="w-full bg-white text-emerald-600 font-bold py-4 rounded-xl hover:bg-gray-100 active:scale-95 transition-all duration-200 shadow-lg hover:shadow-xl border-0"
-                >
-                  Scan Next Ticket
-                </button>
-              </div>
-            </div>
+          <div className="mt-4 p-3 bg-[#140c08] rounded-xl w-full text-center border border-[#3d2618] flex items-center justify-center gap-2">
+            <div className="w-4 h-4 border-2 border-[#c9a97f] border-t-transparent rounded-full animate-spin" />
+            <p className="text-[#c9a97f] font-semibold text-xs">Authenticating Ticket with Database...</p>
           </div>
         )}
 
         {/* Error State */}
         {error && (
-          <div className="mt-4 p-4 bg-gradient-to-r from-red-500 to-pink-600 rounded-2xl w-full text-white text-center shadow-lg border border-white/20 animate-shake">
-            <div className="flex items-center justify-center space-x-2">
-              <span className="text-lg">❌</span>
-              <p className="font-medium">{error}</p>
+          <div className="mt-4 p-3.5 bg-red-950/40 border border-red-800/50 rounded-2xl w-full text-center shadow-lg">
+            <div className="flex items-center justify-center gap-2 text-red-300 text-xs font-semibold">
+              <AlertTriangle size={15} />
+              <p>{error}</p>
             </div>
+          </div>
+        )}
+
+        {/* Verification Success Details */}
+        {scanResult && showDetails && (
+          <div className="mt-5 w-full bg-gradient-to-b from-[#1e130c] to-[#140c08] border border-emerald-500/40 rounded-3xl p-5 shadow-2xl animate-fadeIn">
+            <div className="flex items-center justify-center gap-2 mb-4 pb-3 border-b border-[#2e1c10]">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <CheckCircle size={18} />
+              </div>
+              <div className="text-left">
+                <h3 className="font-bold text-white text-sm">Boarding Pass Validated</h3>
+                <p className="text-[10px] text-emerald-400">Authorized for immediate boarding</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs mb-5">
+              <div className="p-3 rounded-xl bg-[#140c08] border border-[#2e1c10] text-center">
+                <span className="text-[#8c7464] block text-[11px] mb-0.5">Passenger</span>
+                <span className="text-white font-bold text-sm">
+                  {scanResult.student?.name || "Passenger"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-xl bg-[#140c08] border border-[#2e1c10] text-center">
+                  <span className="text-[#8c7464] block text-[10px]">Bus</span>
+                  <span className="text-white font-semibold">{scanResult.bus?.number}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-[#140c08] border border-[#2e1c10] text-center">
+                  <span className="text-[#8c7464] block text-[10px]">Fare</span>
+                  <span className="text-amber-300 font-bold">₹{scanResult.fare}</span>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-[#140c08] border border-[#2e1c10] flex items-center justify-between text-[11px]">
+                <span className="text-white font-medium">{scanResult.startPoint}</span>
+                <span className="text-[#8c7464]">→</span>
+                <span className="text-white font-medium">{scanResult.stopPoint}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowDetails(false);
+                setScanResult(null);
+              }}
+              className="w-full py-3 rounded-xl bg-[#c9a97f] hover:bg-[#b3885c] text-[#140c08] font-bold text-xs transition-colors shadow-md"
+            >
+              Scan Next Ticket
+            </button>
           </div>
         )}
       </div>
 
-      {/* Custom Animations */}
       <style jsx>{`
         @keyframes scanLine {
           0% {
@@ -382,36 +328,6 @@ export default function ScanTicketPage() {
         }
         .animate-scan-line {
           animation: scanLine 2s linear infinite;
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        @keyframes shake {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-          25% {
-            transform: translateX(-5px);
-          }
-          75% {
-            transform: translateX(5px);
-          }
-        }
-        .animate-shake {
-          animation: shake 0.5s ease-in-out;
         }
       `}</style>
     </div>

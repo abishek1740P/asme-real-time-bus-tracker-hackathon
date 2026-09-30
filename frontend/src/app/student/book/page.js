@@ -4,8 +4,19 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
-import CustomToast from "@/components/CustomToast";
 import io from "socket.io-client";
+import {
+  Bus,
+  Search,
+  Mic,
+  MicOff,
+  MapPin,
+  ArrowRight,
+  Radio,
+  X,
+  Navigation,
+  AlertCircle,
+} from "lucide-react";
 
 const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL);
 
@@ -20,12 +31,11 @@ export default function BookBusesPage() {
   const [isListeningFrom, setIsListeningFrom] = useState(false);
   const [isListeningTo, setIsListeningTo] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
-  const [driverStatuses, setDriverStatuses] = useState({}); // Track driver statuses
+  const [driverStatuses, setDriverStatuses] = useState({});
   const recognitionFromRef = useRef(null);
   const recognitionToRef = useRef(null);
   const router = useRouter();
 
-  // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition =
@@ -36,160 +46,101 @@ export default function BookBusesPage() {
         return;
       }
 
-      // From location recognition
       const recognitionFrom = new SpeechRecognition();
       recognitionFrom.continuous = false;
       recognitionFrom.interimResults = false;
       recognitionFrom.lang = "en-US";
 
-      recognitionFrom.onstart = () => {
-        setIsListeningFrom(true);
-      };
-
+      recognitionFrom.onstart = () => setIsListeningFrom(true);
       recognitionFrom.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         setFromLocation(transcript);
         setIsListeningFrom(false);
       };
+      recognitionFrom.onerror = () => setIsListeningFrom(false);
+      recognitionFrom.onend = () => setIsListeningFrom(false);
 
-      recognitionFrom.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        setIsListeningFrom(false);
-        if (event.error === "not-allowed") {
-          toast.custom(() => (
-            <CustomToast
-              type="error"
-              message="Microphone permission denied. Please allow microphone access."
-            />
-          ));
-        }
-      };
-
-      recognitionFrom.onend = () => {
-        setIsListeningFrom(false);
-      };
-
-      // To location recognition
       const recognitionTo = new SpeechRecognition();
       recognitionTo.continuous = false;
       recognitionTo.interimResults = false;
       recognitionTo.lang = "en-US";
 
-      recognitionTo.onstart = () => {
-        setIsListeningTo(true);
-      };
-
+      recognitionTo.onstart = () => setIsListeningTo(true);
       recognitionTo.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         setToLocation(transcript);
         setIsListeningTo(false);
       };
-
-      recognitionTo.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        setIsListeningTo(false);
-        if (event.error === "not-allowed") {
-          toast.custom(() => (
-            <CustomToast
-              type="error"
-              message="Microphone permission denied. Please allow microphone access."
-            />
-          ));
-        }
-      };
-
-      recognitionTo.onend = () => {
-        setIsListeningTo(false);
-      };
+      recognitionTo.onerror = () => setIsListeningTo(false);
+      recognitionTo.onend = () => setIsListeningTo(false);
 
       recognitionFromRef.current = recognitionFrom;
       recognitionToRef.current = recognitionTo;
     }
   }, []);
 
-  // Fetch buses & check driver statuses
-  useEffect(() => {
-    async function fetchBuses() {
-      try {
-        const res = await api.get("/buses");
-        const busesData = res.data;
-        setBuses(busesData);
-        setFilteredBuses(busesData);
-
-        // Check driver statuses for all buses
-        busesData.forEach((bus) => {
-          const driverId = bus.driver?._id;
-          if (driverId) {
-            socket.emit("checkDriverStatus", { driverId }, ({ isOnline }) => {
-              setDriverStatuses((prev) => ({
-                ...prev,
-                [driverId]: isOnline,
-              }));
-            });
+  const checkDriverStatuses = (busList) => {
+    busList.forEach((bus) => {
+      const driverId = bus.driver?._id;
+      if (driverId) {
+        socket.emit("checkDriverStatus", { driverId }, (response) => {
+          if (response && typeof response.isOnline === "boolean") {
+            setDriverStatuses((prev) => ({
+              ...prev,
+              [driverId]: response.isOnline,
+            }));
           }
         });
+      }
+    });
+  };
+
+  useEffect(() => {
+    const fetchBuses = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get("/buses");
+        setBuses(res.data || []);
+        setFilteredBuses(res.data || []);
+        checkDriverStatuses(res.data || []);
       } catch (err) {
-        console.error(err);
-        setError("⚠️ Failed to fetch buses.");
+        setError("Failed to load transit buses");
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchBuses();
 
-    // Listen for real-time driver status updates
-    socket.on("driverStatusUpdate", (data) => {
-      if (data.driverId) {
-        setDriverStatuses((prev) => ({
-          ...prev,
-          [data.driverId]: data.isOnline,
-        }));
-      }
+    socket.on("driverStatusChanged", ({ driverId, isOnline }) => {
+      setDriverStatuses((prev) => ({
+        ...prev,
+        [driverId]: isOnline,
+      }));
     });
 
-    // Listen for location updates which indicate driver is online
-    socket.on("updateLocation", (data) => {
-      if (data.driverId) {
-        setDriverStatuses((prev) => ({
-          ...prev,
-          [data.driverId]: true,
-        }));
+    const interval = setInterval(() => {
+      if (buses.length > 0) {
+        checkDriverStatuses(buses);
       }
-    });
+    }, 15000);
 
     return () => {
-      socket.off("driverStatusUpdate");
-      socket.off("updateLocation");
+      socket.off("driverStatusChanged");
+      clearInterval(interval);
     };
-  }, []);
+  }, [buses.length]);
 
-  // Helper function to check if driver is online
   const isDriverOnline = (bus) => {
     const driverId = bus.driver?._id;
-    if (!driverId) return false;
-    return driverStatuses[driverId] || false;
+    return driverId ? Boolean(driverStatuses[driverId]) : false;
   };
 
   const startListeningFrom = () => {
-    if (recognitionFromRef.current) {
+    if (recognitionFromRef.current && !isListeningFrom) {
       try {
         recognitionFromRef.current.start();
-      } catch (error) {
-        console.error("Error starting speech recognition:", error);
-        setIsListeningFrom(false);
-      }
-    }
-  };
-
-  const startListeningTo = () => {
-    if (recognitionToRef.current) {
-      try {
-        recognitionToRef.current.start();
-      } catch (error) {
-        console.error("Error starting speech recognition:", error);
-        setIsListeningTo(false);
-      }
+      } catch (e) {}
     }
   };
 
@@ -200,26 +151,18 @@ export default function BookBusesPage() {
     }
   };
 
+  const startListeningTo = () => {
+    if (recognitionToRef.current && !isListeningTo) {
+      try {
+        recognitionToRef.current.start();
+      } catch (e) {}
+    }
+  };
+
   const stopListeningTo = () => {
     if (recognitionToRef.current) {
       recognitionToRef.current.stop();
       setIsListeningTo(false);
-    }
-  };
-
-  const toggleListeningFrom = () => {
-    if (isListeningFrom) {
-      stopListeningFrom();
-    } else {
-      startListeningFrom();
-    }
-  };
-
-  const toggleListeningTo = () => {
-    if (isListeningTo) {
-      stopListeningTo();
-    } else {
-      startListeningTo();
     }
   };
 
@@ -229,7 +172,6 @@ export default function BookBusesPage() {
     setSearchTerm("");
   };
 
-  // Filter buses by search term and from-to locations
   useEffect(() => {
     if (!searchTerm && !fromLocation && !toLocation) {
       setFilteredBuses(buses);
@@ -239,7 +181,6 @@ export default function BookBusesPage() {
       const toLower = toLocation.toLowerCase();
 
       const filtered = buses.filter((bus) => {
-        // General search term matching
         const generalSearchMatch = searchTerm
           ? bus.name.toLowerCase().includes(searchTermLower) ||
             bus.number.toLowerCase().includes(searchTermLower) ||
@@ -249,14 +190,12 @@ export default function BookBusesPage() {
             )
           : true;
 
-        // From-To location matching
         let fromToMatch = true;
         if (fromLocation || toLocation) {
           const stops = bus.route?.stops || [];
           const stopNames = stops.map((stop) => stop.name.toLowerCase());
 
           if (fromLocation && toLocation) {
-            // Check if bus goes from 'fromLocation' to 'toLocation'
             const fromIndex = stopNames.findIndex((stop) =>
               stop.includes(fromLower)
             );
@@ -266,10 +205,8 @@ export default function BookBusesPage() {
             fromToMatch =
               fromIndex !== -1 && toIndex !== -1 && fromIndex < toIndex;
           } else if (fromLocation) {
-            // Check if bus has 'fromLocation' in its route
             fromToMatch = stopNames.some((stop) => stop.includes(fromLower));
           } else if (toLocation) {
-            // Check if bus has 'toLocation' in its route
             fromToMatch = stopNames.some((stop) => stop.includes(toLower));
           }
         }
@@ -281,249 +218,210 @@ export default function BookBusesPage() {
   }, [searchTerm, fromLocation, toLocation, buses]);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-white mb-2">Available Buses</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
+          <Bus className="text-[#c9a97f]" />
+          Book Transit Bus Ticket
+        </h1>
+        <p className="text-xs md:text-sm text-[#8c7464] mt-0.5">
+          Select boarding point and destination to find available buses with instant seat booking.
+        </p>
+      </div>
 
-      {/* From - To Section */}
-      <div className="bg-[#F5F1ED] rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[#3E2F2C] font-semibold text-sm">
-            Find Your Route
-          </h3>
-          {(fromLocation || toLocation) && (
+      {/* Route Finder Filter Card */}
+      <div className="bg-[#1e130c]/90 border border-[#3d2618] rounded-3xl p-5 md:p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#2e1c10]">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <Navigation size={16} className="text-[#c9a97f]" />
+            Find Bus by Route Stops
+          </h2>
+          {(fromLocation || toLocation || searchTerm) && (
             <button
               onClick={clearFilters}
-              className="text-xs text-[#8B7355] hover:text-[#3E2F2C] transition-colors"
+              className="text-xs text-[#c9a97f] hover:text-white transition-colors"
             >
-              Clear
+              Reset Filters
             </button>
           )}
         </div>
 
-        {/* Vertical layout for mobile, horizontal for larger screens */}
+        {/* Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* From Input */}
-          <div className="relative">
-            <label className="block text-xs text-[#8B7355] mb-1 font-medium">
-              From
+          <div>
+            <label className="block text-xs text-[#a89078] mb-1.5 font-medium">
+              Boarding Stop (From)
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Starting point..."
+                placeholder="e.g. Gandhipuram or Campus..."
                 value={fromLocation}
                 onChange={(e) => setFromLocation(e.target.value)}
-                className="w-full p-3 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
+                className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-xs focus:outline-none focus:border-[#c9a97f] transition-colors"
               />
               {speechSupported && (
                 <button
                   type="button"
-                  onClick={toggleListeningFrom}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
+                  onClick={() =>
+                    isListeningFrom ? stopListeningFrom() : startListeningFrom()
+                  }
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors ${
                     isListeningFrom
                       ? "bg-red-500 text-white animate-pulse"
-                      : "bg-[#E8D5C4] text-[#8B7355] hover:bg-[#D4B8A4]"
-                  } transition-colors duration-200`}
-                  title={
-                    isListeningFrom ? "Stop listening" : "Voice input for From"
-                  }
-                  disabled={isListeningTo}
+                      : "text-[#8c7464] hover:text-[#c9a97f]"
+                  }`}
+                  title="Voice input"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    {isListeningFrom ? (
-                      <rect x="6" y="6" width="12" height="12" rx="1" />
-                    ) : (
-                      <>
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      </>
-                    )}
-                  </svg>
+                  {isListeningFrom ? <MicOff size={14} /> : <Mic size={14} />}
                 </button>
               )}
             </div>
           </div>
 
           {/* To Input */}
-          <div className="relative">
-            <label className="block text-xs text-[#8B7355] mb-1 font-medium">
-              To
+          <div>
+            <label className="block text-xs text-[#a89078] mb-1.5 font-medium">
+              Destination Stop (To)
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="Destination..."
+                placeholder="e.g. SRIT Campus or Ukkadam..."
                 value={toLocation}
                 onChange={(e) => setToLocation(e.target.value)}
-                className="w-full p-3 pr-10 rounded-xl border border-[#CDBFB4] bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B7355] text-sm transition-all duration-200"
+                className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-[#140c08] border border-[#3d2618] text-white text-xs focus:outline-none focus:border-[#c9a97f] transition-colors"
               />
               {speechSupported && (
                 <button
                   type="button"
-                  onClick={toggleListeningTo}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full ${
+                  onClick={() =>
+                    isListeningTo ? stopListeningTo() : startListeningTo()
+                  }
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-colors ${
                     isListeningTo
                       ? "bg-red-500 text-white animate-pulse"
-                      : "bg-[#E8D5C4] text-[#8B7355] hover:bg-[#D4B8A4]"
-                  } transition-colors duration-200`}
-                  title={
-                    isListeningTo ? "Stop listening" : "Voice input for To"
-                  }
-                  disabled={isListeningFrom}
+                      : "text-[#8c7464] hover:text-[#c9a97f]"
+                  }`}
+                  title="Voice input"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    {isListeningTo ? (
-                      <rect x="6" y="6" width="12" height="12" rx="1" />
-                    ) : (
-                      <>
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      </>
-                    )}
-                  </svg>
+                  {isListeningTo ? <MicOff size={14} /> : <Mic size={14} />}
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* Route Display */}
+        {/* Selected Route Visual Strip */}
         {(fromLocation || toLocation) && (
-          <div className="text-center pt-2">
-            <span className="text-xs text-[#3E2F2C] bg-[#E8D5C4] px-3 py-1 rounded-full">
-              🚌 {fromLocation || "Anywhere"} → {toLocation || "Anywhere"}
+          <div className="pt-2 flex items-center justify-center">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#140c08] border border-[#2e1c10] text-xs text-[#F3E5D7]">
+              <span className="text-white font-medium">{fromLocation || "Any Stop"}</span>
+              <ArrowRight size={13} className="text-[#c9a97f]" />
+              <span className="text-white font-medium">{toLocation || "Any Stop"}</span>
             </span>
           </div>
         )}
       </div>
 
-      {/* Listening Indicators */}
-      {(isListeningFrom || isListeningTo) && (
-        <div className="p-3 bg-[#E8F4FD] border border-[#8B7355] rounded-xl text-[#3E2F2C] flex items-center justify-center">
-          <div className="flex items-center space-x-2">
-            <div className="flex space-x-1">
-              <div className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"></div>
-              <div
-                className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"
-                style={{ animationDelay: "0.1s" }}
-              ></div>
-              <div
-                className="w-2 h-4 bg-[#8B7355] rounded-full animate-bounce"
-                style={{ animationDelay: "0.2s" }}
-              ></div>
-            </div>
-            <span className="text-sm">
-              Listening for {isListeningFrom ? "'From'" : "'To'"}... Speak now
-            </span>
-          </div>
+      {/* General Search */}
+      <div className="relative">
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8c7464]" />
+        <input
+          type="text"
+          placeholder="Filter by bus name or number..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#1e130c]/70 border border-[#2e1c10] text-xs md:text-sm text-[#F3E5D7] placeholder-[#8c7464] focus:outline-none focus:border-[#c9a97f]"
+        />
+      </div>
+
+      {/* Bus Listing */}
+      {loading ? (
+        <div className="text-center py-16">
+          <div className="w-8 h-8 border-3 border-[#c9a97f] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-xs text-[#8c7464]">Searching routes...</p>
         </div>
-      )}
-
-      {/* Browser Support Warning */}
-      {!speechSupported && (
-        <div className="p-3 bg-[#FFF3CD] border border-[#FFEaa6] rounded-xl text-[#856404] text-sm">
-          🎤 Voice search is not supported in your browser. Try Chrome, Edge, or
-          Safari.
+      ) : error ? (
+        <p className="text-red-400 text-xs text-center py-4">{error}</p>
+      ) : filteredBuses.length === 0 ? (
+        <div className="text-center py-16 px-4 bg-[#1e130c]/40 rounded-2xl border border-[#2e1c10]">
+          <AlertCircle size={40} className="mx-auto text-[#8c7464] mb-3" />
+          <p className="text-base text-[#F3E5D7] font-semibold">No matching buses found</p>
+          <p className="text-xs text-[#8c7464] mt-1">Try modifying your boarding or destination stops</p>
         </div>
-      )}
-
-      {/* Results Section */}
-      <div>
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B7355]"></div>
-            <p className="mt-2 text-[#3E2F2C]">Loading buses...</p>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs text-[#8c7464]">
+            <span>Available Route Vehicles</span>
+            <span>{filteredBuses.length} buses found</span>
           </div>
-        ) : error ? (
-          <p className="text-red-500 text-center py-4">{error}</p>
-        ) : filteredBuses.length === 0 ? (
-          <div className="text-center py-8 text-[#8B7355]">
-            <p className="text-lg">🚫 No buses found</p>
-            <p className="text-sm mt-1">Try adjusting your search or filters</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <h3 className="text-[#3E2F2C] font-semibold">
-                Available Buses ({filteredBuses.length})
-              </h3>
-            </div>
 
-            <div className="grid gap-3">
-              {filteredBuses.map((bus) => (
-                <div
-                  key={bus._id}
-                  onClick={() => router.push(`/student/book/${bus._id}`)}
-                  className="bg-[#3E2F2C] hover:bg-[#5D4037] p-4 rounded-xl shadow-lg flex justify-between items-center cursor-pointer transform hover:scale-[1.02] transition-all duration-200 border border-[#CDBFB4]"
-                >
-                  <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-white">
-                      {bus.name} ({bus.number})
-                    </h2>
-
-                    {/* Horizontal Driver Status */}
-                    <div className="flex items-center space-x-4 mt-2">
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            isDriverOnline(bus)
-                              ? "bg-green-400 animate-pulse"
-                              : "bg-red-400"
-                          }`}
-                        ></div>
-                        <span className="text-xs text-[#CDBFB4]">
-                          Driver:{" "}
-                          {isDriverOnline(bus) ? "🟢 Online" : "🔴 Offline"}
-                        </span>
-                      </div>
-
-                      <span className="text-xs text-[#A1887F]">
-                        Route: {bus.route?.name || "Not Assigned"}
-                      </span>
-
-                      {bus.route?.stops && (
-                        <span className="text-xs text-[#A1887F]">
-                          Stops: {bus.route.stops.length}
-                        </span>
-                      )}
-                    </div>
+          <div className="grid gap-3">
+            {filteredBuses.map((bus) => (
+              <div
+                key={bus._id}
+                onClick={() => router.push(`/student/book/${bus._id}`)}
+                className="group bg-[#1e130c]/80 hover:bg-[#25170f] border border-[#2e1c10] hover:border-[#c9a97f]/50 p-4 md:p-5 rounded-2xl shadow-lg transition-all duration-200 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-base font-bold text-white group-hover:text-[#c9a97f] transition-colors">
+                      {bus.name}
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#2a1a11] text-[#c9a97f] border border-[#3d2618]">
+                      {bus.number}
+                    </span>
                   </div>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/student/book/${bus._id}`);
-                    }}
-                    className="ml-4 px-4 py-2 rounded-xl bg-[#8B7355] hover:bg-[#6B5B4D] text-white font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
-                  >
-                    Book Now
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-[#8c7464] mt-2">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          isDriverOnline(bus)
+                            ? "bg-emerald-400 animate-pulse"
+                            : "bg-red-400/80"
+                        }`}
+                      />
+                      <span className={isDriverOnline(bus) ? "text-emerald-400 font-medium" : "text-[#8c7464]"}>
+                        Driver {isDriverOnline(bus) ? "Online" : "Offline"}
+                      </span>
+                    </div>
+
+                    <span>•</span>
+
+                    <span className="text-[#a89078]">
+                      Route: {bus.route?.name || "Unassigned"}
+                    </span>
+
+                    {bus.route?.stops && (
+                      <>
+                        <span>•</span>
+                        <span className="text-[#8c7464]">
+                          {bus.route.stops.length} stops
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/student/book/${bus._id}`);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#b3885c] to-[#c9a97f] hover:from-[#c9a97f] hover:to-[#dfc39e] text-[#140c08] font-bold text-xs shadow-md transition-all active:scale-95 self-start sm:self-auto"
+                >
+                  Select & Book Seats
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
