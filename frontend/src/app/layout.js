@@ -3,6 +3,7 @@ import "./globals.css";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navbar from "@/components/Navbar";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { Toaster } from "react-hot-toast";
 import Footer from "@/components/Footer";
 import FirebaseServiceWorker from "@/components/FirebaseServiceWorker";
@@ -39,8 +40,7 @@ export default function RootLayout({ children }) {
       <body
         className={`
           ${geistSans.variable} ${geistMono.variable}
-          bg-[#1e120b] text-white antialiased font-sans
-          flex flex-col min-h-screen
+          antialiased font-sans flex flex-col min-h-screen
         `}
       >
         {/* Razorpay Checkout Script */}
@@ -49,13 +49,15 @@ export default function RootLayout({ children }) {
           strategy="beforeInteractive"
         />
 
-        <AuthProvider>
-          <FirebaseServiceWorker />
-          <Navbar />
-          <main className="flex-1 flex flex-col">{children}</main>
-          <Footer />
-          <Toaster position="top-center" reverseOrder={false} />
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <FirebaseServiceWorker />
+            <Navbar />
+            <main className="flex-1 flex flex-col">{children}</main>
+            <Footer />
+            <Toaster position="top-center" reverseOrder={false} />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

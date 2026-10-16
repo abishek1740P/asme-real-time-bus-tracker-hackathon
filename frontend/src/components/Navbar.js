@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useEffect, useState } from "react";
-import { Menu, X, Bus, LogOut, LayoutDashboard, Home } from "lucide-react";
+import { Menu, X, Bus, LogOut, LayoutDashboard, Home, Sun, Moon } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, loading } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [dashboardLink, setDashboardLink] = useState("/");
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -68,6 +70,15 @@ export default function Navbar() {
 
           {/* Desktop Nav Links */}
           <div className="hidden sm:flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="theme-toggle-btn"
+              aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
+            >
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+              <span>{isDark ? "Light" : "Dark"}</span>
+            </button>
             {!user ? (
               <>
                 <Link
@@ -126,14 +137,24 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Hamburger */}
-          <button
-            className="sm:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-[#d1b8a3] hover:text-white hover:bg-white/10 transition-all"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          {/* Mobile Actions */}
+          <div className="sm:hidden flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="theme-toggle-btn !px-2.5 !py-2"
+              aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
+            >
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <button
+              className="p-2 rounded-xl bg-white/5 border border-white/10 text-[#d1b8a3] hover:text-white hover:bg-white/10 transition-all"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -146,6 +167,15 @@ export default function Navbar() {
         }`}
       >
         <div className="bg-[#1e140d]/98 backdrop-blur-xl border-b border-[#3d2618]/60 shadow-2xl px-4 py-4 space-y-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="theme-toggle-btn w-full justify-center mb-2"
+            aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            <span>{isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}</span>
+          </button>
           {!user ? (
             <>
               <Link
