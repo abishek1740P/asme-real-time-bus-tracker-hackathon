@@ -3,17 +3,44 @@
 :root {
   --background: #140c08;
   --foreground: #F3E5D7;
+  --surface: #1e140d;
+  --surface-soft: #23150d;
+  --surface-muted: #1b1009;
+  --card-bg: #1e140d;
+  --card-border: #3d2618;
+  --text-primary: #F3E5D7;
+  --text-secondary: #d1b8a3;
+  --text-muted: #8c7464;
   --accent: #c9a97f;
   --accent-dark: #b3885c;
   --border: #3d2618;
 }
 
+html[data-theme="light"] {
+  --background: #f5f7fb;
+  --foreground: #1f2937;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-muted: #eef2f7;
+  --card-bg: #ffffff;
+  --card-border: #d5deea;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --border: #d5deea;
+}
+
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--text-primary);
   font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-theme="light"] ::selection {
+  background: #dbeafe;
+  color: #1e293b;
 }
 
 /* Custom scrollbar */
@@ -72,6 +99,11 @@ body {
   animation: shimmer 1.5s infinite;
 }
 
+html[data-theme="light"] .skeleton {
+  background: linear-gradient(90deg, #e7edf6 25%, #d8e2f0 50%, #e7edf6 75%);
+  background-size: 200% 100%;
+}
+
 /* Focus ring override for consistency */
 *:focus-visible {
   outline: 2px solid #c9a97f;
@@ -89,4 +121,86 @@ a, button {
   background: rgba(30, 20, 13, 0.85);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(61, 38, 24, 0.6);
+}
+
+html[data-theme="light"] .glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(213, 222, 234, 0.9);
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(201, 169, 127, 0.35);
+  background: rgba(201, 169, 127, 0.16);
+  color: var(--accent);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.theme-toggle-btn:hover {
+  background: rgba(201, 169, 127, 0.28);
+}
+
+html[data-theme="light"] .theme-toggle-btn {
+  background: #fff8ef;
+  border-color: #e6d1b5;
+  color: #7c4d20;
+}
+
+html[data-theme="light"] [class*="bg-[#140c08"],
+html[data-theme="light"] [class*="bg-[#1e120b"],
+html[data-theme="light"] [class*="bg-[#1e140d"],
+html[data-theme="light"] [class*="bg-[#1a1009"],
+html[data-theme="light"] [class*="bg-[#23150d"],
+html[data-theme="light"] [class*="bg-[#1b1009"],
+html[data-theme="light"] [class*="bg-[#160d08"],
+html[data-theme="light"] [class*="bg-[#0d0705"],
+html[data-theme="light"] [class*="bg-[#2a1a10"],
+html[data-theme="light"] [class*="bg-[#3a2415"] {
+  background-color: var(--surface) !important;
+}
+
+html[data-theme="light"] [class*="from-[#1b1009"],
+html[data-theme="light"] [class*="via-[#140c08"],
+html[data-theme="light"] [class*="to-[#0d0705"],
+html[data-theme="light"] [class*="to-[#140c08"] {
+  --tw-gradient-from: #f8fafc var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: #eef2f7 var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: #e6edf5 var(--tw-gradient-to-position) !important;
+}
+
+html[data-theme="light"] [class*="text-[#F3E5D7"],
+html[data-theme="light"] [class*="text-[#d1b8a3"],
+html[data-theme="light"] [class*="text-[#c9b49a"],
+html[data-theme="light"] [class*="text-[#e2c7a5"],
+html[data-theme="light"] [class*="text-[#b89f8b"],
+html[data-theme="light"] [class*="text-[#8c7464"] {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="light"] [class*="border-[#3d2618"],
+html[data-theme="light"] [class*="border-white/8"],
+html[data-theme="light"] [class*="border-white/10"] {
+  border-color: var(--border) !important;
+}
+
+html[data-theme="light"] :where(input, select, textarea) {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  border-color: var(--border) !important;
+}
+
+html[data-theme="light"] :where(table) {
+  background-color: #ffffff;
+  color: var(--text-primary);
+}
+
+html[data-theme="light"] :where(th, td) {
+  border-color: #e5e7eb !important;
+  color: var(--text-secondary);
 }
