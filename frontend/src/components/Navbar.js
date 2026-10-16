@@ -137,14 +137,24 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Hamburger */}
-          <button
-            className="sm:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-[#d1b8a3] hover:text-white hover:bg-white/10 transition-all"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+          {/* Mobile Actions */}
+          <div className="sm:hidden flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="theme-toggle-btn !px-2.5 !py-2"
+              aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
+            >
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <button
+              className="p-2 rounded-xl bg-white/5 border border-white/10 text-[#d1b8a3] hover:text-white hover:bg-white/10 transition-all"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
       </nav>
 
