@@ -105,7 +105,7 @@ export default function BookBusPage() {
       {
         prefill: {
           name: "Passenger",
-          email: "passenger@commutex.com",
+          email: "passenger@urbantrail.com",
           contact: "9876543210",
         },
       },

@@ -71,7 +71,7 @@ export default function Home() {
 
           {/* Sub-heading */}
           <p className="text-base sm:text-lg text-[#b89f8b] max-w-2xl mx-auto leading-relaxed">
-            Commutex brings you real-time GPS tracking, instant push notifications, and
+            Urban Trail brings you real-time GPS tracking, instant push notifications, and
             seamless digital ticketing — all in one platform built for SRIT students.
           </p>
 

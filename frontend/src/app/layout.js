@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Commutex",
+  title: "Urban Trail",
   description: "Track the bus in real-time",
 };
 

@@ -69,7 +69,7 @@ export default function DriverHomePage() {
                 <h1 className="text-xl sm:text-2xl font-extrabold text-[#F3E5D7]">
                   Driver Panel
                 </h1>
-                <p className="text-xs text-[#8c7464]">Commutex Transit Operations</p>
+                <p className="text-xs text-[#8c7464]">Urban Trail Transit Operations</p>
               </div>
             </div>
             <h2 className="text-lg font-semibold text-[#e8cfb5]">

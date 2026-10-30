@@ -87,7 +87,7 @@ export default function StudentHomePage() {
           <div className="space-y-3 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#c9a97f]/15 border border-[#c9a97f]/30 text-[#e8cfb5] text-xs font-medium">
               <Sparkles size={14} className="text-[#c9a97f]" />
-              Commutex Smart Transit System
+              Urban Trail Smart Transit System
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-[#F3E5D7] tracking-tight">
               Hello, {studentName || "Passenger"} 👋

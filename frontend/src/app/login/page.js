@@ -84,7 +84,7 @@ export default function LoginPage() {
             <Bus size={28} className="text-[#c9a97f]" />
           </div>
           <h1 className="text-3xl font-extrabold text-[#F3E5D7]">Welcome Back</h1>
-          <p className="text-sm text-[#8c7464]">Sign in to your Commutex account</p>
+          <p className="text-sm text-[#8c7464]">Sign in to your Urban Trail account</p>
         </div>
 
         {/* Email Field */}

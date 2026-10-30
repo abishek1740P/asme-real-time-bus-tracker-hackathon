@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }) => {
         <div className="min-h-screen bg-[#140c08] text-white flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-10 h-10 border-4 border-[#c9a97f] border-t-transparent rounded-full animate-spin" />
-            <p className="text-[#c9a97f] text-sm font-medium">Loading Commutex...</p>
+            <p className="text-[#c9a97f] text-sm font-medium">Loading Urban Trail...</p>
           </div>
         </div>
       ) : (

@@ -51,7 +51,7 @@ export default function RegisterPage() {
           </div>
           <h1 className="text-3xl font-extrabold text-[#F3E5D7]">Create Account</h1>
           <p className="text-sm text-[#8c7464]">
-            Join Commutex as a student passenger
+            Join Urban Trail as a student passenger
           </p>
         </div>
 

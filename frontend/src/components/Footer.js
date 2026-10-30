@@ -22,7 +22,7 @@ export default function Footer() {
             Built with{" "}
             <Heart size={11} className="text-red-400 fill-red-400" />
             {" "}by{" "}
-            <span className="text-[#c9a97f] font-medium">Commutex Team</span>
+            <span className="text-[#c9a97f] font-medium">Urban Trail Team</span>
             {" "}· © {new Date().getFullYear()}
           </p>
 
