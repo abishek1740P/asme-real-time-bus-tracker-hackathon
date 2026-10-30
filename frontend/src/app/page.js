@@ -84,20 +84,20 @@ export default function Home() {
               Get Started
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
+            {/* <Link
               href="/register"
               className="flex items-center gap-2 px-7 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 text-[#F3E5D7] font-semibold text-sm border border-white/10 backdrop-blur-sm active:scale-95 transition-all duration-200"
             >
               Register as Student
-            </Link>
+            </Link> */}
           </div>
 
           {/* Stats Row */}
           <div className="pt-6 flex flex-wrap justify-center gap-6 sm:gap-10">
             {[
-              { label: "Campus Buses", value: "5+" },
-              { label: "Active Students", value: "200+" },
-              { label: "Stops Tracked", value: "30+" },
+              { label: "Campus Buses", value: "2+" },
+              { label: "Active Students", value: "60+" },
+              { label: "Stops Tracked", value: "10+" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="text-2xl sm:text-3xl font-extrabold text-[#c9a97f]">
