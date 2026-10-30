@@ -72,7 +72,7 @@ export default function Home() {
           {/* Sub-heading */}
           <p className="text-base sm:text-lg text-[#b89f8b] max-w-2xl mx-auto leading-relaxed">
             Urban Trail brings you real-time GPS tracking, instant push notifications, and
-            seamless digital ticketing — all in one platform built for SRIT students.
+            seamless digital ticketing — all in one platform built for Passengers.
           </p>
 
           {/* CTA Buttons */}
@@ -161,7 +161,7 @@ export default function Home() {
               Ready to Track Your Bus?
             </h2>
             <p className="text-[#b89f8b] text-sm max-w-md mx-auto">
-              Join hundreds of SRIT students who never miss their bus. Log in and start tracking right now.
+              Join hundreds of passengers who never miss their bus. Log in and start tracking right now.
             </p>
             <Link
               href="/login"
