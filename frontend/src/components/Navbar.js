@@ -62,7 +62,7 @@ export default function Navbar() {
               <Bus size={18} className="text-[#c9a97f]" />
             </div>
             <span className="text-lg font-bold text-[#F3E5D7] tracking-tight">
-              Commu<span className="text-[#c9a97f]">tex</span>
+              Urban<span className="text-[#c9a97f]">Trail</span>
             </span>
           </Link>
 

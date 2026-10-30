@@ -13,7 +13,7 @@ export default function Footer() {
               <Bus size={14} className="text-[#c9a97f]" />
             </div>
             <span className="text-sm font-bold text-[#d1b8a3]">
-              Commu<span className="text-[#c9a97f]">tex</span>
+              Urban<span className="text-[#c9a97f]">Trail</span>
             </span>
           </div>
 
